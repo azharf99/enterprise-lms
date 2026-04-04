@@ -19,11 +19,11 @@ func NewModuleHandler(r *gin.Engine, mu domain.ModuleUsecase) {
 	// Contoh: /api/courses/1/modules
 	api := r.Group("/api")
 	{
-		api.POST("/courses/:courseId/modules", handler.Create)
-		api.GET("/courses/:courseId/modules", handler.GetByCourse)
-		api.GET("/modules/:id", handler.GetByID)
-		api.PUT("/modules/:id", handler.Update)
-		api.DELETE("/modules/:id", handler.Delete)
+		api.POST("/courses/:course_id/modules", handler.Create)
+		api.GET("/courses/:course_id/modules", handler.GetByCourse)
+		api.GET("/modules/:module_id", handler.GetByID)
+		api.PUT("/modules/:module_id", handler.Update)
+		api.DELETE("/modules/:module_id", handler.Delete)
 	}
 }
 
@@ -33,7 +33,7 @@ type ModuleRequest struct {
 }
 
 func (h *ModuleHandler) Create(c *gin.Context) {
-	courseID, _ := strconv.ParseUint(c.Param("courseId"), 10, 32)
+	courseID, _ := strconv.ParseUint(c.Param("course_id"), 10, 32)
 	var req ModuleRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -49,7 +49,7 @@ func (h *ModuleHandler) Create(c *gin.Context) {
 }
 
 func (h *ModuleHandler) GetByCourse(c *gin.Context) {
-	courseId := c.Param("courseId")
+	courseId := c.Param("course_id")
 	id, err := strconv.ParseUint(courseId, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -64,7 +64,7 @@ func (h *ModuleHandler) GetByCourse(c *gin.Context) {
 }
 
 func (h *ModuleHandler) GetByID(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("module_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -79,7 +79,7 @@ func (h *ModuleHandler) GetByID(c *gin.Context) {
 }
 
 func (h *ModuleHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("module_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -105,7 +105,7 @@ func (h *ModuleHandler) Update(c *gin.Context) {
 }
 
 func (h *ModuleHandler) Delete(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("module_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})

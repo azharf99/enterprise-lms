@@ -19,9 +19,9 @@ func NewCourseHandler(r *gin.Engine, cu domain.CourseUsecase) {
 	{
 		courseRoutes.POST("", handler.Create)
 		courseRoutes.GET("", handler.GetAll)
-		courseRoutes.GET("/:id", handler.GetByID)
-		courseRoutes.PUT("/:id", handler.Update)    // Route Update
-		courseRoutes.DELETE("/:id", handler.Delete) // Route Delete
+		courseRoutes.GET("/:course_id", handler.GetByID)
+		courseRoutes.PUT("/:course_id", handler.Update)    // Route Update
+		courseRoutes.DELETE("/:course_id", handler.Delete) // Route Delete
 	}
 }
 
@@ -56,7 +56,7 @@ func (h *CourseHandler) GetAll(c *gin.Context) {
 }
 
 func (h *CourseHandler) GetByID(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("course_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -71,7 +71,7 @@ func (h *CourseHandler) GetByID(c *gin.Context) {
 }
 
 func (h *CourseHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("course_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -97,7 +97,7 @@ func (h *CourseHandler) Update(c *gin.Context) {
 }
 
 func (h *CourseHandler) Delete(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("course_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})

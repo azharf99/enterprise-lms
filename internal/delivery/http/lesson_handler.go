@@ -15,15 +15,13 @@ type LessonHandler struct {
 func NewLessonHandler(r *gin.Engine, mu domain.LessonUsecase) {
 	handler := &LessonHandler{lessonUsecase: mu}
 
-	// API bersarang (nested) lebih disarankan untuk REST yang baik
-	// Contoh: /api/courses/1/lessons
 	api := r.Group("/api")
 	{
-		api.POST("/modules/:moduleId/lessons", handler.Create)
-		api.GET("/modules/:moduleId/lessons", handler.GetByModuleID)
-		api.GET("/lessons/:id", handler.GetByID)
-		api.PUT("/lessons/:id", handler.Update)
-		api.DELETE("/lessons/:id", handler.Delete)
+		api.POST("/modules/:module_id/lessons", handler.Create)
+		api.GET("/modules/:module_id/lessons", handler.GetByModuleID)
+		api.GET("/lessons/:lesson_id", handler.GetByID)
+		api.PUT("/lessons/:lesson_id", handler.Update)
+		api.DELETE("/lessons/:lesson_id", handler.Delete)
 	}
 }
 
@@ -35,7 +33,7 @@ type LessonRequest struct {
 }
 
 func (h *LessonHandler) Create(c *gin.Context) {
-	courseID, _ := strconv.ParseUint(c.Param("moduleId"), 10, 32)
+	courseID, _ := strconv.ParseUint(c.Param("module_id"), 10, 32)
 	var req LessonRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -51,7 +49,7 @@ func (h *LessonHandler) Create(c *gin.Context) {
 }
 
 func (h *LessonHandler) GetByModuleID(c *gin.Context) {
-	moduleId := c.Param("moduleId")
+	moduleId := c.Param("module_id")
 	id, err := strconv.ParseUint(moduleId, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -66,7 +64,7 @@ func (h *LessonHandler) GetByModuleID(c *gin.Context) {
 }
 
 func (h *LessonHandler) GetByID(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("lesson_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -81,7 +79,7 @@ func (h *LessonHandler) GetByID(c *gin.Context) {
 }
 
 func (h *LessonHandler) Update(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("lesson_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
@@ -107,7 +105,7 @@ func (h *LessonHandler) Update(c *gin.Context) {
 }
 
 func (h *LessonHandler) Delete(c *gin.Context) {
-	idParam := c.Param("id")
+	idParam := c.Param("lesson_id")
 	id, err := strconv.ParseUint(idParam, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
