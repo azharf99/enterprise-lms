@@ -1,0 +1,53 @@
+package domain
+
+import (
+	"time"
+
+	"github.com/azharf99/enterprise-lms/pkg/utils"
+	"gorm.io/gorm"
+)
+
+type Role string
+
+const (
+	RoleSiswa  Role = "Siswa"
+	RoleTutor  Role = "Tutor"
+	RoleAdmin  Role = "Admin"
+	RoleEditor Role = "Editor"
+)
+
+type User struct {
+	ID        uint           `gorm:"primaryKey" json:"id"`
+	Name      string         `gorm:"type:varchar(100);not null" json:"name"`
+	Email     string         `gorm:"type:varchar(100);uniqueIndex;not null" json:"email"`
+	Password  string         `gorm:"type:varchar(255);not null" json:"-"`
+	Role      Role           `gorm:"type:varchar(20);not null;default:'Siswa'" json:"role"`
+	CreatedAt time.Time      `json:"created_at"`
+	UpdatedAt time.Time      `json:"updated_at"`
+	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+}
+
+// UserRepository adalah kontrak untuk berinteraksi dengan database
+type UserRepository interface {
+	BulkInsert(users []User) error
+	GetByEmail(email string) (User, error)
+	GetByID(id uint) (User, error) // Tambahan baru untuk mengecek eksistensi user saat refresh
+}
+
+// UserUsecase adalah kontrak untuk logika bisnis
+type UserUsecase interface {
+	ImportFromCSV(records [][]string) (int, error)
+	Login(email, password string) (*utils.TokenPair, error)
+	RefreshAccessToken(refreshToken string) (*utils.TokenPair, error) // Fungsi baru
+}
+
+// LoginRequest adalah format data yang diharapkan saat user login
+type LoginRequest struct {
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"required"`
+}
+
+// RefreshRequest adalah format data saat frontend meminta access token baru
+type RefreshRequest struct {
+	RefreshToken string `json:"refresh_token" binding:"required"`
+}

@@ -1,0 +1,117 @@
+package usecase
+
+import (
+	"errors"
+	"strings"
+	"sync"
+
+	"github.com/azharf99/enterprise-lms/internal/domain"
+	"github.com/azharf99/enterprise-lms/pkg/utils"
+	"gorm.io/gorm"
+)
+
+type userUsecase struct {
+	userRepo domain.UserRepository
+}
+
+// NewUserUsecase adalah constructor untuk usecase
+func NewUserUsecase(ur domain.UserRepository) domain.UserUsecase {
+	return &userUsecase{userRepo: ur}
+}
+
+func (u *userUsecase) ImportFromCSV(records [][]string) (int, error) {
+	if len(records) < 2 {
+		return 0, errors.New("data CSV kosong atau hanya berisi header")
+	}
+
+	var wg sync.WaitGroup
+	userChan := make(chan domain.User, len(records)-1)
+	errorChan := make(chan string, len(records)-1)
+
+	for i, record := range records {
+		if i == 0 || len(record) != 4 {
+			continue // Lewati header dan baris tidak valid
+		}
+
+		wg.Add(1)
+		go func(row []string) {
+			defer wg.Done()
+
+			name := strings.TrimSpace(row[0])
+			email := strings.TrimSpace(row[1])
+			rawPassword := strings.TrimSpace(row[2])
+			role := domain.Role(strings.TrimSpace(row[3]))
+
+			hashedPassword, err := utils.HashPassword(rawPassword)
+			if err != nil {
+				errorChan <- "error hashing"
+				return
+			}
+
+			userChan <- domain.User{
+				Name:     name,
+				Email:    email,
+				Password: hashedPassword,
+				Role:     role,
+			}
+		}(record)
+	}
+
+	wg.Wait()
+	close(userChan)
+	close(errorChan)
+
+	var users []domain.User
+	for user := range userChan {
+		users = append(users, user)
+	}
+
+	if len(users) == 0 {
+		return 0, errors.New("tidak ada data valid untuk disimpan")
+	}
+
+	// Panggil repository untuk menyimpan data
+	err := u.userRepo.BulkInsert(users)
+	if err != nil {
+		return 0, err
+	}
+
+	return len(users), nil
+}
+
+func (u *userUsecase) Login(email, password string) (*utils.TokenPair, error) {
+	// 1. Cari user di database
+	user, err := u.userRepo.GetByEmail(email)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, errors.New("email atau password salah")
+		}
+		return nil, err
+	}
+
+	// 2. Bandingkan password
+	match := utils.CheckPasswordHash(password, user.Password)
+	if !match {
+		return nil, errors.New("email atau password salah")
+	}
+
+	// 3. Buat JWT
+	return utils.GenerateTokenPair(user.ID, string(user.Role))
+}
+
+func (u *userUsecase) RefreshAccessToken(refreshToken string) (*utils.TokenPair, error) {
+	// 1. Validasi token dan ambil ID User
+	userID, err := utils.ValidateRefreshToken(refreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Cek apakah user masih ada di database dan belum di-banned/dihapus
+	user, err := u.userRepo.GetByID(userID)
+	if err != nil {
+		return nil, errors.New("pengguna tidak ditemukan atau tidak aktif")
+	}
+
+	// 3. Buat pasangan token yang baru
+	return utils.GenerateTokenPair(user.ID, string(user.Role))
+}
