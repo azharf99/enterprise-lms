@@ -21,13 +21,16 @@ func main() {
 
 	// 2. Inisialisasi Repository
 	userRepo := postgres.NewUserRepository(db)
+	courseRepo := postgres.NewCourseRepository(db)
 
 	// 3. Inisialisasi Usecase
 	userUsecase := usecase.NewUserUsecase(userRepo)
+	courseUsecase := usecase.NewCourseUsecase(courseRepo)
 
 	// 4. Inisialisasi Router & Handler
 	r := gin.Default()
 	http.NewUserHandler(r, userUsecase)
+	http.NewCourseHandler(r, courseUsecase)
 
 	// 5. Jalankan Server
 	r.Run(":8081")

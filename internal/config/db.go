@@ -25,7 +25,12 @@ func ConnectDatabase() *gorm.DB {
 	}
 
 	// Migrasi otomatis
-	err = db.AutoMigrate(&domain.User{})
+	err = db.AutoMigrate(
+		&domain.User{},
+		&domain.Course{},
+		&domain.Module{},
+		&domain.Lesson{},
+	)
 	if err != nil {
 		log.Fatal("Gagal migrasi:", err)
 	}
