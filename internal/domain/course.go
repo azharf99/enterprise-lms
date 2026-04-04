@@ -73,3 +73,37 @@ type CourseUsecase interface {
 	UpdateCourse(id uint, title, description string, tutorIDs []uint) (*Course, error)
 	DeleteCourse(id uint) error
 }
+
+type ModuleRepository interface {
+	Create(module *Module) error
+	GetByCourseID(courseID uint) ([]Module, error)
+	GetByID(id uint) (Module, error)
+	Update(module *Module) error
+	Delete(id uint) error
+}
+
+type ModuleUsecase interface {
+	CreateModule(courseID uint, title string, sequence int) (*Module, error)
+	GetModulesByCourse(courseID uint) ([]Module, error)
+	GetModuleByID(id uint) (Module, error)
+	UpdateModule(id uint, title string, sequence int) (*Module, error)
+	DeleteModule(id uint) error
+}
+
+// --- KONTRAK LESSON ---
+
+type LessonRepository interface {
+	Create(lesson *Lesson) error
+	GetByModuleID(moduleID uint) ([]Lesson, error)
+	GetByID(id uint) (Lesson, error)
+	Update(lesson *Lesson) error
+	Delete(id uint) error
+}
+
+type LessonUsecase interface {
+	CreateLesson(moduleID uint, title string, lessonType LessonType, content string, sequence int) (*Lesson, error)
+	GetLessonsByModule(moduleID uint) ([]Lesson, error)
+	GetLessonByID(id uint) (Lesson, error)
+	UpdateLesson(id uint, title string, lessonType LessonType, content string, sequence int) (*Lesson, error)
+	DeleteLesson(id uint) error
+}
