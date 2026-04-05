@@ -1,7 +1,7 @@
 services:
   
   api:
-    build: .
+    image: azharfa/enterprise-lms:latest
     container_name: lms_api
     restart: always
     ports:
