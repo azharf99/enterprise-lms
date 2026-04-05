@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -21,11 +23,20 @@ func SecurityHeaders() gin.HandlerFunc {
 	}
 }
 
+
 // SetupCORS membatasi domain mana saja yang boleh mengakses API ini
 func SetupCORS() gin.HandlerFunc {
+	// KEAMANAN: Konfigurasi CORS Dinamis
+	allowedOriginsEnv := os.Getenv("ALLOWED_ORIGINS")
+	var allowedOrigins []string
+	if allowedOriginsEnv == "" {
+		allowedOrigins = []string{"http://localhost:5173"} // Fallback aman
+	} else {
+		allowedOrigins = strings.Split(allowedOriginsEnv, ",")
+	}
 	return cors.New(cors.Config{
 		// Nanti ganti dengan domain frontend Anda yang sebenarnya
-		AllowOrigins:     []string{"https://lms.azharfa.cloud", "http://localhost:3000"},
+		AllowOrigins:     allowedOrigins,
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Origin", "Content-Type", "Authorization"},
 		ExposeHeaders:    []string{"Content-Length"},
