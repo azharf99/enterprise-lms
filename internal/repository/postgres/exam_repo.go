@@ -64,3 +64,11 @@ func (r *examAttemptRepository) GetLatestAttempt(examID, userID uint) (domain.Ex
 func (r *examAttemptRepository) Update(attempt *domain.ExamAttempt) error {
 	return r.db.Model(attempt).Updates(attempt).Error
 }
+
+// Tambahkan fungsi ini di bagian bawah file exam_repo.go
+func (r *examAttemptRepository) GetByExamID(examID uint) ([]domain.ExamAttempt, error) {
+	var attempts []domain.ExamAttempt
+	// Kita hanya mengambil attempt yang sudah disubmit (CompletedAt tidak null)
+	err := r.db.Where("exam_id = ? AND completed_at IS NOT NULL", examID).Find(&attempts).Error
+	return attempts, err
+}

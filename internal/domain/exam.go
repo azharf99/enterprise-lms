@@ -71,6 +71,7 @@ type ExamQuestionRepository interface {
 type ExamAttemptRepository interface {
 	Create(attempt *ExamAttempt) error
 	GetByID(id uint) (ExamAttempt, error)
+	GetByExamID(examID uint) ([]ExamAttempt, error)
 	GetLatestAttempt(examID, userID uint) (ExamAttempt, error)
 	Update(attempt *ExamAttempt) error
 }

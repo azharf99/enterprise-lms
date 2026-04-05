@@ -1,0 +1,79 @@
+name: Enterprise LMS CI/CD Pipeline
+
+on:
+  push:
+    branches: [ "main" ] # Hanya trigger deploy jika push ke branch main
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    name: Run Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.26'
+    - name: Run Tests
+      run: go test -v ./...
+
+  # build-and-deploy:
+  #   name: Build Image and Deploy to VPS
+  #   needs: test
+  #   runs-on: ubuntu-latest
+  #   env:
+  #     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  #   if: github.ref == 'refs/heads/main' # Hanya jalankan saat push ke main
+
+  #   steps:
+  #   - name: Checkout Code
+  #     uses: actions/checkout@v4
+
+  #   # 1. Login ke Docker Hub
+  #   - name: Login to Docker Hub
+  #     uses: docker/login-action@v2
+  #     with:
+  #       username: ${{ secrets.DOCKERHUB_USERNAME }}
+  #       password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  #   # 2. Build Docker Image dan Push ke Docker Hub
+  #   - name: Build and Push Docker Image
+  #     uses: docker/build-push-action@v4
+  #     with:
+  #       context: .
+  #       push: true
+  #       # Format penamaan di Docker Hub: username_dockerhub/nama_image:tag
+  #       tags: ${{ secrets.DOCKERHUB_USERNAME }}/enterprise-lms:latest
+
+  #   # 3. Copy file docker-compose.yml ke VPS menggunakan SCP
+  #   - name: Copy docker-compose.yml to VPS via SCP
+  #     uses: appleboy/scp-action@v0.1.7
+  #     with:
+  #       host: ${{ secrets.VPS_HOST }}
+  #       username: ${{ secrets.VPS_USERNAME }}
+  #       key: ${{ secrets.VPS_SSH_KEY }}
+  #       source: "docker-compose.yml" # File yang ingin dikirim
+  #       target: "/opt/enterprise-lms"    # Folder tujuan di VPS
+
+  #   # 4. SSH ke VPS untuk eksekusi Pull & Restart
+  #   - name: Deploy to VPS via SSH
+  #     uses: appleboy/ssh-action@v0.1.10
+  #     with:
+  #       host: ${{ secrets.VPS_HOST }}
+  #       username: ${{ secrets.VPS_USERNAME }}
+  #       key: ${{ secrets.VPS_SSH_KEY }}
+  #       script: |
+  #         cd /opt/enterprise-lms
+          
+  #         # Tarik image terbaru dari Docker Hub
+  #         docker compose pull
+          
+  #         # Eksekusi docker compose
+  #         docker compose up -d
+          
+  #         # Bersihkan image yang tidak terpakai
+  #         docker image prune -f

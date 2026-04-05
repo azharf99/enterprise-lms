@@ -40,9 +40,14 @@ func main() {
 	questionUsecase := usecase.NewQuestionUsecase(questionRepo)
 	quizUsecase := usecase.NewQuizUsecase(quizRepo, attemptRepo)
 	examUsecase := usecase.NewExamUsecase(examRepo, examQuestionRepo, examAttemptRepo)
-
+	analyticsUsecase := usecase.NewAnalyticsUsecase(examRepo, examAttemptRepo)
 	// 4. Inisialisasi Router & Handler
 	r := gin.Default()
+	r.SetTrustedProxies([]string{"127.0.0.1"})
+	// Pasang middleware keamanan global
+	r.Use(middleware.SecurityHeaders())
+	r.Use(middleware.SetupCORS())
+	r.Use(middleware.RateLimiter())
 	http.NewUserHandler(r, userUsecase)
 	protedcted := r.Group("/")
 	protedcted.Use(middleware.RequireAuth())
@@ -53,8 +58,9 @@ func main() {
 		http.NewQuizHandler(r, quizUsecase, questionUsecase)
 		http.NewAttemptHandler(r, quizUsecase)
 		http.NewExamHandler(r, examUsecase)
+		http.NewAnalyticsHandler(r, analyticsUsecase)
 	}
 
 	// 5. Jalankan Server
-	r.Run(":8081")
+	r.Run(":8080")
 }

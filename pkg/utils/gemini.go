@@ -1,39 +1,25 @@
 package utils
 
 import (
-	"context"
+	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
-
-	"github.com/google/generative-ai-go/genai"
-	"google.golang.org/api/option"
 )
 
-// GenerateQuizJSON menghubungi Google Gemini AI untuk membuat soal format JSON murni
+// GenerateQuizJSON menghubungi Google Gemini AI menggunakan REST API standar
 func GenerateQuizJSON(topic, qType string, count int) (string, error) {
-	ctx := context.Background()
-
-	// Ambil API Key dari Environment Variable (.env)
 	apiKey := os.Getenv("GEMINI_API_KEY")
 	if apiKey == "" {
 		return "", fmt.Errorf("GEMINI_API_KEY tidak ditemukan di environment")
 	}
 
-	// Inisialisasi client AI
-	client, err := genai.NewClient(ctx, option.WithAPIKey(apiKey))
-	if err != nil {
-		return "", fmt.Errorf("gagal membuat AI client: %v", err)
-	}
-	defer client.Close()
+	// Endpoint resmi Gemini 1.5 Flash
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
 
-	// Pilih model (Flash sangat direkomendasikan untuk teks karena cepat dan murah)
-	model := client.GenerativeModel("gemini-1.5-flash")
-
-	// Fitur krusial: Memaksa model merespons HANYA dalam format JSON
-	model.ResponseMIMEType = "application/json"
-
-	// Merangkai instruksi (Prompt Engineering)
-	prompt := fmt.Sprintf(`Buatkan %d soal %s untuk ujian tingkat menengah/atas dengan topik: "%s".
+	prompt := fmt.Sprintf(`Buatkan %d soal dengan tipe %s untuk ujian tingkat menengah atas (SMA) dengan topik: "%s".
 
 Aturan format:
 1. Kembalikan murni array JSON, tanpa backtick, tanpa tulisan 'json' di awal.
@@ -49,7 +35,7 @@ Aturan format:
 5. "points" harus berupa integer yang menunjukkan bobot nilai untuk setiap soal, dengan nilai default 10 jika tidak ditentukan. 
 6. Pastikan semua teks dalam bahasa Indonesia yang baik dan benar, dan gunakan istilah yang sesuai dengan konteks pendidikan di Indonesia. 
 7. Sehubungan respons kamu akan ditembak langsung ke API, maka JANGAN PERNAH sertakan teks penjelasan atau instruksi tambahan di luar format JSON. Hanya kembalikan array JSON yang valid. 
-7. Struktur atau format untuk setiap objek WAJIB seperti ini:
+8. Struktur atau format untuk setiap objek WAJIB seperti ini:
 {
   "type": "MultipleChoice",
   "text": "Teks pertanyaan secara lengkap",
@@ -59,18 +45,67 @@ Aturan format:
   "explanation": "Penjelasan detail mengapa jawaban tersebut benar"
 }`, count, qType, topic)
 
-	// Mengirim permintaan ke server Gemini
-	resp, err := model.GenerateContent(ctx, genai.Text(prompt))
-	if err != nil {
-		return "", fmt.Errorf("gagal melakukan request ke AI: %v", err)
+	// Menyusun struktur payload sesuai spesifikasi REST API Gemini
+	reqBody := map[string]interface{}{
+		"contents": []map[string]interface{}{
+			{
+				"parts": []map[string]interface{}{
+					{"text": prompt},
+				},
+			},
+		},
+		"generationConfig": map[string]interface{}{
+			"responseMimeType": "application/json",
+		},
 	}
 
-	// Mengekstrak teks dari respons AI
-	if len(resp.Candidates) > 0 && len(resp.Candidates[0].Content.Parts) > 0 {
-		part := resp.Candidates[0].Content.Parts[0]
-		if textPart, ok := part.(genai.Text); ok {
-			return string(textPart), nil
-		}
+	jsonData, err := json.Marshal(reqBody)
+	if err != nil {
+		return "", fmt.Errorf("gagal menyusun payload JSON: %v", err)
+	}
+
+	// Membuat HTTP Request
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(jsonData))
+	if err != nil {
+		return "", fmt.Errorf("gagal membuat HTTP request: %v", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	// Mengeksekusi Request
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("gagal menghubungi server Gemini: %v", err)
+	}
+	defer resp.Body.Close()
+
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("gagal membaca respons: %v", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("error dari Gemini API (Status %d): %s", resp.StatusCode, string(body))
+	}
+
+	// Parsing struktur respons JSON Gemini
+	var geminiResp struct {
+		Candidates []struct {
+			Content struct {
+				Parts []struct {
+					Text string `json:"text"`
+				} `json:"parts"`
+			} `json:"content"`
+		} `json:"candidates"`
+	}
+
+	if err := json.Unmarshal(body, &geminiResp); err != nil {
+		return "", fmt.Errorf("gagal memparsing JSON balasan AI: %v", err)
+	}
+
+	// Mengekstrak teks balasan
+	if len(geminiResp.Candidates) > 0 && len(geminiResp.Candidates[0].Content.Parts) > 0 {
+		return geminiResp.Candidates[0].Content.Parts[0].Text, nil
 	}
 
 	return "", fmt.Errorf("respons dari AI kosong atau tidak sesuai format")

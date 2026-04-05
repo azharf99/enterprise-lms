@@ -184,18 +184,18 @@ func (u *examUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 
 		userAnsBytes, _ := json.Marshal(userAns)
 
-		if question.Type == domain.TypeMultipleAnswer {
+		switch question.Type {
+		case domain.TypeMultipleAnswer:
 			// Hitung dengan Partial Credit
 			totalEarnedPoints += utils.CalculatePartialCredit(userAnsBytes, question.CorrectAnswer, question.Points)
-		} else if question.Type == domain.TypeEssay {
+		case domain.TypeEssay:
 			// Esai diabaikan dari perhitungan otomatis (akan dinilai manual oleh Tutor nanti)
-		} else {
+		default:
 			// Hitung dengan Strict Match (Pilihan Ganda Biasa, Benar Salah, Isian)
 			compactUser := new(bytes.Buffer)
 			compactCorrect := new(bytes.Buffer)
 			json.Compact(compactUser, userAnsBytes)
 			json.Compact(compactCorrect, question.CorrectAnswer)
-
 			if compactUser.String() == compactCorrect.String() {
 				totalEarnedPoints += question.Points
 			}
