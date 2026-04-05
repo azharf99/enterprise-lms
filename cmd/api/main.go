@@ -24,19 +24,30 @@ func main() {
 	courseRepo := postgres.NewCourseRepository(db)
 	moduleRepo := postgres.NewModuleRepository(db)
 	lessonRepo := postgres.NewLessonRepository(db)
+	quizRepo := postgres.NewQuizRepository(db)
+	questionRepo := postgres.NewQuestionRepository(db)
+	attemptRepo := postgres.NewQuizAttemptRepository(db)
 
 	// 3. Inisialisasi Usecase
 	userUsecase := usecase.NewUserUsecase(userRepo)
 	courseUsecase := usecase.NewCourseUsecase(courseRepo)
 	moduleUsecase := usecase.NewModuleUsecase(moduleRepo)
 	lessonUsecase := usecase.NewLessonUsecase(lessonRepo)
+	questionUsecase := usecase.NewQuestionUsecase(questionRepo)
+	quizUsecase := usecase.NewQuizUsecase(quizRepo, attemptRepo)
 
 	// 4. Inisialisasi Router & Handler
 	r := gin.Default()
 	http.NewUserHandler(r, userUsecase)
-	http.NewCourseHandler(r, courseUsecase)
-	http.NewModuleHandler(r, moduleUsecase)
-	http.NewLessonHandler(r, lessonUsecase)
+	protedcted := r.Group("/")
+	protedcted.Use(http.AuthMiddleware())
+	{
+		http.NewCourseHandler(r, courseUsecase)
+		http.NewModuleHandler(r, moduleUsecase)
+		http.NewLessonHandler(r, lessonUsecase)
+		http.NewQuizHandler(r, quizUsecase, questionUsecase)
+		http.NewAttemptHandler(r, quizUsecase)
+	}
 
 	// 5. Jalankan Server
 	r.Run(":8081")

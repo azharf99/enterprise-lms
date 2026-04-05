@@ -1,0 +1,42 @@
+package postgres
+
+import (
+	"github.com/azharf99/enterprise-lms/internal/domain"
+	"gorm.io/gorm"
+)
+
+type quizAttemptRepository struct {
+	db *gorm.DB
+}
+
+func NewQuizAttemptRepository(db *gorm.DB) domain.QuizAttemptRepository {
+	return &quizAttemptRepository{db: db}
+}
+
+func (r *quizAttemptRepository) Create(attempt *domain.QuizAttempt) error {
+	return r.db.Create(attempt).Error
+}
+
+func (r *quizAttemptRepository) GetByID(id uint) (domain.QuizAttempt, error) {
+	var attempt domain.QuizAttempt
+	err := r.db.First(&attempt, id).Error
+	return attempt, err
+}
+
+func (r *quizAttemptRepository) GetLatestAttempt(quizID, userID uint) (domain.QuizAttempt, error) {
+	var attempt domain.QuizAttempt
+	err := r.db.Where("quiz_id = ? AND user_id = ?", quizID, userID).
+		Order("attempt_number desc").
+		First(&attempt).Error
+	return attempt, err
+}
+
+func (r *quizAttemptRepository) GetAttemptsByUser(quizID, userID uint) ([]domain.QuizAttempt, error) {
+	var attempts []domain.QuizAttempt
+	err := r.db.Where("quiz_id = ? AND user_id = ?", quizID, userID).Order("attempt_number asc").Find(&attempts).Error
+	return attempts, err
+}
+
+func (r *quizAttemptRepository) Update(attempt *domain.QuizAttempt) error {
+	return r.db.Model(attempt).Updates(attempt).Error
+}
