@@ -25,10 +25,6 @@ func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase) {
 	}
 }
 
-func AuthMiddleware() gin.HandlerFunc {
-	panic("unimplemented")
-}
-
 func (h *AttemptHandler) StartAttempt(c *gin.Context) {
 	quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
 

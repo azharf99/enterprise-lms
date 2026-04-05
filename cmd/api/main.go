@@ -5,6 +5,7 @@ import (
 
 	"github.com/azharf99/enterprise-lms/internal/config"
 	"github.com/azharf99/enterprise-lms/internal/delivery/http"
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/repository/postgres"
 	"github.com/azharf99/enterprise-lms/internal/usecase"
 	"github.com/gin-gonic/gin"
@@ -27,6 +28,9 @@ func main() {
 	quizRepo := postgres.NewQuizRepository(db)
 	questionRepo := postgres.NewQuestionRepository(db)
 	attemptRepo := postgres.NewQuizAttemptRepository(db)
+	examRepo := postgres.NewExamRepository(db)
+	examQuestionRepo := postgres.NewExamQuestionRepository(db)
+	examAttemptRepo := postgres.NewExamAttemptRepository(db)
 
 	// 3. Inisialisasi Usecase
 	userUsecase := usecase.NewUserUsecase(userRepo)
@@ -35,18 +39,20 @@ func main() {
 	lessonUsecase := usecase.NewLessonUsecase(lessonRepo)
 	questionUsecase := usecase.NewQuestionUsecase(questionRepo)
 	quizUsecase := usecase.NewQuizUsecase(quizRepo, attemptRepo)
+	examUsecase := usecase.NewExamUsecase(examRepo, examQuestionRepo, examAttemptRepo)
 
 	// 4. Inisialisasi Router & Handler
 	r := gin.Default()
 	http.NewUserHandler(r, userUsecase)
 	protedcted := r.Group("/")
-	protedcted.Use(http.AuthMiddleware())
+	protedcted.Use(middleware.RequireAuth())
 	{
 		http.NewCourseHandler(r, courseUsecase)
 		http.NewModuleHandler(r, moduleUsecase)
 		http.NewLessonHandler(r, lessonUsecase)
 		http.NewQuizHandler(r, quizUsecase, questionUsecase)
 		http.NewAttemptHandler(r, quizUsecase)
+		http.NewExamHandler(r, examUsecase)
 	}
 
 	// 5. Jalankan Server
