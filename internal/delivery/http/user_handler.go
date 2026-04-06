@@ -21,7 +21,7 @@ func NewUserHandler(r *gin.Engine, us domain.UserUsecase) {
 	r.POST("/api/users/login", handler.Login)
 	r.POST("/api/users/refresh", handler.RefreshToken)
 	protectedUser := r.Group("/api/users")
-	protectedUser.Use(middleware.RequireAuth())
+	protectedUser.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Admin"}))
 	{
 		protectedUser.GET("", handler.GetAll)
 		protectedUser.POST("", handler.CreateUser)

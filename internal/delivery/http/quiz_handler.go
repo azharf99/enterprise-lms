@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
 	"gorm.io/datatypes"
@@ -20,21 +21,24 @@ func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuestionUse
 		questionUsecase: qnu,
 	}
 
-	api := r.Group("/api")
+	quizAuth := r.Group("/api")
+	quizAuth.Use(middleware.RequireAuth())
+	quizAuth.GET("/modules/:module_id/quizzes", handler.GetQuizzesByModule)
+	quizAuth.GET("/quizzes/:quiz_id/questions", handler.GetQuestionsByQuiz)
+	quizAuth.GET("/questions/:question_id", handler.GetQuestionByID)
+	quizAuth.GET("/quizzes/:quiz_id", handler.GetQuizByID)
+	quizMgmt := r.Group("/api")
+	quizMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
 		// Quiz Management
-		api.POST("/modules/:module_id/quizzes", handler.CreateQuiz)
-		api.GET("/modules/:module_id/quizzes", handler.GetQuizzesByModule)
-		api.GET("/quizzes/:quiz_id", handler.GetQuizByID)
-		api.PUT("/quizzes/:quiz_id", handler.UpdateQuiz)
-		api.DELETE("/quizzes/:quiz_id", handler.DeleteQuiz)
+		quizMgmt.POST("/modules/:module_id/quizzes", handler.CreateQuiz)
+		quizMgmt.PUT("/quizzes/:quiz_id", handler.UpdateQuiz)
+		quizMgmt.DELETE("/quizzes/:quiz_id", handler.DeleteQuiz)
 
 		// Question Management (Nested under Quiz)
-		api.POST("/quizzes/:quiz_id/questions", handler.CreateQuestion)
-		api.GET("/quizzes/:quiz_id/questions", handler.GetQuestionsByQuiz)
-		api.GET("/questions/:question_id", handler.GetQuestionByID)
-		api.PUT("/questions/:question_id", handler.UpdateQuestion)
-		api.DELETE("/questions/:question_id", handler.DeleteQuestion)
+		quizMgmt.POST("/quizzes/:quiz_id/questions", handler.CreateQuestion)
+		quizMgmt.PUT("/questions/:question_id", handler.UpdateQuestion)
+		quizMgmt.DELETE("/questions/:question_id", handler.DeleteQuestion)
 	}
 }
 

@@ -13,8 +13,8 @@ services:
       - TZ=Asia/Jakarta
       - DB_HOST=gothub_db 
       - DB_USER=${DB_USER:-postgres}
-      - DB_PASSWORD=${DB_PASSWORD} # Gunakan password database Project 1
-      - DB_NAME=${DB_NAME:-lms_db} # Arahkan ke database yang baru kita buat
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_NAME=${DB_NAME:-lms_db}
       - DB_PORT=5432
       - JWT_SECRET=${JWT_SECRET:-ketikan_disini_secret_anda}
       - JWT_REFRESH_SECRET=${JWT_REFRESH_SECRET:-ketikan_disini_secret_anda}
@@ -22,7 +22,6 @@ services:
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin123}
       - GIN_MODE=release
 
-    # Memberikan batasan memori agar tidak menghabiskan RAM VPS
     deploy:
       resources:
         limits:

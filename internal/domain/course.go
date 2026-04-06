@@ -6,17 +6,16 @@ import (
 	"gorm.io/gorm"
 )
 
+// Course merepresentasikan suatu mata pelajaran
 type Course struct {
-	ID          uint   `gorm:"primaryKey" json:"id"`
-	Title       string `gorm:"type:varchar(200);not null" json:"title"`
-	Description string `gorm:"type:text" json:"description"`
-	// Relasi Many-to-Many dengan User (Tutor)
-	Tutors []User `gorm:"many2many:course_tutors;" json:"tutors,omitempty"`
-	// Relasi One-to-Many dengan Module
-	Modules   []Module       `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"modules,omitempty"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID          uint           `gorm:"primaryKey" json:"id"`
+	Title       string         `gorm:"type:varchar(200);not null" json:"title"`
+	Description string         `gorm:"type:text" json:"description"`
+	Tutors      []User         `gorm:"many2many:course_tutors;" json:"tutors,omitempty"`
+	Modules     []Module       `gorm:"foreignKey:CourseID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"modules,omitempty"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // Module merepresentasikan bab di dalam suatu mata pelajaran

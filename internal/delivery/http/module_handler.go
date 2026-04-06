@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -12,18 +13,22 @@ type ModuleHandler struct {
 	moduleUsecase domain.ModuleUsecase
 }
 
-func NewModuleHandler(r *gin.Engine, mu domain.ModuleUsecase) {
+func NewModuleHandler(r *gin.Engine, mu domain.ModuleUsecase, er domain.EnrollmentRepository) {
 	handler := &ModuleHandler{moduleUsecase: mu}
 
-	// API bersarang (nested) lebih disarankan untuk REST yang baik
+	lessonAuth := r.Group("/api")
+	lessonAuth.Use(middleware.RequireAuth(), middleware.RequireCourseAccess(er))
 	// Contoh: /api/courses/1/modules
-	api := r.Group("/api")
+	lessonAuth.GET("/courses/:course_id/modules", handler.GetByCourse)
+
+	lessonMgmt := r.Group("/api")
+	lessonMgmt.Use(middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
-		api.POST("/courses/:course_id/modules", handler.Create)
-		api.GET("/courses/:course_id/modules", handler.GetByCourse)
-		api.GET("/modules/:module_id", handler.GetByID)
-		api.PUT("/modules/:module_id", handler.Update)
-		api.DELETE("/modules/:module_id", handler.Delete)
+		// Contoh: /api/courses/1/modules
+		lessonMgmt.POST("/courses/:course_id/modules", handler.Create)
+		lessonMgmt.GET("/modules/:module_id", handler.GetByID)
+		lessonMgmt.PUT("/modules/:module_id", handler.Update)
+		lessonMgmt.DELETE("/modules/:module_id", handler.Delete)
 	}
 }
 
@@ -55,7 +60,7 @@ func (h *ModuleHandler) GetByCourse(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
 		return
 	}
-	courses, err := h.moduleUsecase.GetModuleByID(uint(id))
+	courses, err := h.moduleUsecase.GetModulesByCourse(uint(id))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

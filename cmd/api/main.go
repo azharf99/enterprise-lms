@@ -33,6 +33,7 @@ func main() {
 	examRepo := postgres.NewExamRepository(db)
 	examQuestionRepo := postgres.NewExamQuestionRepository(db)
 	examAttemptRepo := postgres.NewExamAttemptRepository(db)
+	enrollmentRepo := postgres.NewEnrollmentRepository(db)
 
 	// 3. Inisialisasi Usecase
 	userUsecase := usecase.NewUserUsecase(userRepo)
@@ -43,6 +44,7 @@ func main() {
 	quizUsecase := usecase.NewQuizUsecase(quizRepo, attemptRepo)
 	examUsecase := usecase.NewExamUsecase(examRepo, examQuestionRepo, examAttemptRepo)
 	analyticsUsecase := usecase.NewAnalyticsUsecase(examRepo, examAttemptRepo)
+	enrollmentUsecase := usecase.NewEnrollmentUsecase(enrollmentRepo)
 	// 4. Inisialisasi Router & Handler
 	r := gin.Default()
 	r.SetTrustedProxies([]string{"127.0.0.1"})
@@ -54,8 +56,8 @@ func main() {
 	protedcted := r.Group("/")
 	protedcted.Use(middleware.RequireAuth())
 	{
-		http.NewCourseHandler(r, courseUsecase)
-		http.NewModuleHandler(r, moduleUsecase)
+		http.NewCourseHandler(r, courseUsecase, enrollmentUsecase)
+		http.NewModuleHandler(r, moduleUsecase, enrollmentRepo)
 		http.NewLessonHandler(r, lessonUsecase)
 		http.NewQuizHandler(r, quizUsecase, questionUsecase)
 		http.NewAttemptHandler(r, quizUsecase)

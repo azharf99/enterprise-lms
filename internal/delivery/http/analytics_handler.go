@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -16,11 +17,12 @@ func NewAnalyticsHandler(r *gin.Engine, au domain.AnalyticsUsecase) {
 	handler := &AnalyticsHandler{analyticsUsecase: au}
 
 	// Route khusus untuk analitik (sebaiknya dilindungi AuthMiddleware khusus role Tutor/Admin)
-	api := r.Group("/api/analytics")
-	// api.Use(AuthMiddleware(), RoleMiddleware("Tutor", "Admin")) // Contoh proteksi
+	analyticsMgmt := r.Group("/api/analytics")
+	analyticsMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
+	// analyticsMgmt.Use(AuthMiddleware(), RoleMiddleware("Tutor", "Admin")) // Contoh proteksi
 	{
-		api.GET("/exams/:exam_id/summary", handler.GetExamSummary)
-		api.GET("/exams/:exam_id/item-analysis", handler.GetItemAnalysis)
+		analyticsMgmt.GET("/exams/:exam_id/summary", handler.GetExamSummary)
+		analyticsMgmt.GET("/exams/:exam_id/item-analysis", handler.GetItemAnalysis)
 	}
 }
 

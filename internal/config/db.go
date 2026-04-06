@@ -36,6 +36,7 @@ func ConnectDatabase() *gorm.DB {
 		&domain.Exam{},
 		&domain.ExamQuestion{},
 		&domain.ExamAttempt{},
+		&domain.Enrollment{},
 	)
 	if err != nil {
 		log.Fatal("Gagal migrasi:", err)

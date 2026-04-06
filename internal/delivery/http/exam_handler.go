@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -18,15 +19,19 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase) {
 
 	// Endpoint Manajemen Ujian (Admin/Tutor)
 	mgmt := r.Group("/api/courses/:course_id/exams")
+	mgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
 		mgmt.POST("", handler.CreateExam)
 	}
 
-	api := r.Group("/api/exams/:exam_id")
+	examAuth := r.Group("/api/exams/:exam_id")
+	examAuth.Use(middleware.RequireAuth())
+	examAuth.POST("/attempts", handler.StartAttempt)
+	examMgmt := r.Group("/api/exams/:exam_id")
+	examMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
-		api.PATCH("/token", handler.GenerateToken)
-		api.POST("/generate-ai", handler.GenerateQuestionsAI)
-		api.POST("/attempts", handler.StartAttempt)
+		examMgmt.PATCH("/token", handler.GenerateToken)
+		examMgmt.POST("/generate-ai", handler.GenerateQuestionsAI)
 	}
 }
 

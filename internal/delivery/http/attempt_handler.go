@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -16,12 +17,13 @@ type AttemptHandler struct {
 func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase) {
 	handler := &AttemptHandler{quizUsecase: qu}
 
-	api := r.Group("/api")
+	attemptAuth := r.Group("/api")
+	attemptAuth.Use(middleware.RequireAuth())
 	{
 		// Memulai kuis
-		api.POST("/quizzes/:quiz_id/attempts", handler.StartAttempt)
+		attemptAuth.POST("/quizzes/:quiz_id/attempts", handler.StartAttempt)
 		// Mengirimkan jawaban kuis
-		api.POST("/attempts/:attempt_id/submit", handler.SubmitAttempt)
+		attemptAuth.POST("/attempts/:attempt_id/submit", handler.SubmitAttempt)
 	}
 }
 

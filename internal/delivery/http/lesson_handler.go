@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -15,13 +16,16 @@ type LessonHandler struct {
 func NewLessonHandler(r *gin.Engine, mu domain.LessonUsecase) {
 	handler := &LessonHandler{lessonUsecase: mu}
 
-	api := r.Group("/api")
+	lessonAuth := r.Group("/api")
+	lessonAuth.Use(middleware.RequireAuth())
+	lessonAuth.GET("/modules/:module_id/lessons", handler.GetByModuleID)
+	lessonMgmt := r.Group("/api")
+	lessonMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
-		api.POST("/modules/:module_id/lessons", handler.Create)
-		api.GET("/modules/:module_id/lessons", handler.GetByModuleID)
-		api.GET("/lessons/:lesson_id", handler.GetByID)
-		api.PUT("/lessons/:lesson_id", handler.Update)
-		api.DELETE("/lessons/:lesson_id", handler.Delete)
+		lessonMgmt.POST("/modules/:module_id/lessons", handler.Create)
+		lessonMgmt.GET("/lessons/:lesson_id", handler.GetByID)
+		lessonMgmt.PUT("/lessons/:lesson_id", handler.Update)
+		lessonMgmt.DELETE("/lessons/:lesson_id", handler.Delete)
 	}
 }
 
