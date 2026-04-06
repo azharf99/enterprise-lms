@@ -8,6 +8,7 @@ import (
 	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/repository/postgres"
 	"github.com/azharf99/enterprise-lms/internal/usecase"
+	"github.com/azharf99/enterprise-lms/internal/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 )
@@ -19,6 +20,7 @@ func main() {
 		fmt.Println("Error loading .env file. Mengalihkan dengan menggunakan ENV dari docker.")
 	}
 	db := config.ConnectDatabase()
+	utils.SeedAdmin(db)
 
 	// 2. Inisialisasi Repository
 	userRepo := postgres.NewUserRepository(db)
