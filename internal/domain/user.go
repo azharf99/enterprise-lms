@@ -33,6 +33,7 @@ type UserRepository interface {
 	GetUserByEmail(email string) (User, error)
 	GetAllUsers() ([]User, error)
 	GetUserByID(id uint) (User, error)
+	CreateUser(user *User) error
 	UpdateUser(user *User) error
 	DeleteUser(id uint) error
 }
@@ -41,6 +42,7 @@ type UserRepository interface {
 type UserUsecase interface {
 	ImportFromCSV(records [][]string) (int, error)
 	GetAllUsers() ([]User, error)
+	CreateUser(name, email, password string, role Role) (*User, error)
 	UpdateUser(id uint, name, email string, role Role) (*User, error)
 	DeleteUser(id uint) error
 	Login(email, password string) (*utils.TokenPair, error)
@@ -57,6 +59,13 @@ type UserUpdateRequest struct {
 	Name  string `json:"name" binding:"required"`
 	Email string `json:"email" binding:"required,email"`
 	Role  Role   `json:"role" binding:"required,oneof=Siswa Tutor Admin Editor"`
+}
+
+type UserCreateRequest struct {
+	Name     string `json:"name" binding:"required"`
+	Password string `gorm:"type:varchar(255);not null" json:"-"`
+	Email    string `json:"email" binding:"required,email"`
+	Role     Role   `json:"role" binding:"required,oneof=Siswa Tutor Admin Editor"`
 }
 
 // RefreshRequest adalah format data saat frontend meminta access token baru

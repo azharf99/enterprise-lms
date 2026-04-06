@@ -24,6 +24,7 @@ func NewUserHandler(r *gin.Engine, us domain.UserUsecase) {
 	protectedUser.Use(middleware.RequireAuth())
 	{
 		protectedUser.GET("", handler.GetAll)
+		protectedUser.POST("", handler.CreateUser)
 		protectedUser.PUT("/:user_id", handler.UpdateUser)
 		protectedUser.DELETE("/:user_id", handler.DeleteUser)
 		protectedUser.POST("/import", handler.ImportCSV)
@@ -66,6 +67,20 @@ func (h *UserHandler) GetAll(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": users})
+}
+
+func (h *UserHandler) CreateUser(c *gin.Context) {
+	var req domain.UserCreateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format request tidak valid"})
+		return
+	}
+	user, err := h.userUsecase.CreateUser(req.Name, req.Email, req.Password, req.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusCreated, gin.H{"message": "Pengguna berhasil dibuat", "data": user})
 }
 
 func (h *UserHandler) Login(c *gin.Context) {

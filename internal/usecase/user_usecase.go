@@ -79,6 +79,38 @@ func (u *userUsecase) ImportFromCSV(records [][]string) (int, error) {
 	return len(users), nil
 }
 
+func (u *userUsecase) CreateUser(name, email, password string, role domain.Role) (*domain.User, error) {
+	if name == "" {
+		return nil, errors.New("nama tidak boleh kosong")
+	}
+
+	if email == "" {
+		return nil, errors.New("email tidak boleh kosong")
+	}
+
+	if password == "" {
+		return nil, errors.New("password tidak boleh kosong")
+	}
+
+	user := &domain.User{
+		Name:  name,
+		Email: email,
+		Role:  role,
+	}
+
+	hashedPassword, err := utils.HashPassword(password)
+	if err != nil {
+		return nil, err
+	}
+	user.Password = hashedPassword
+
+	if err := u.userRepo.CreateUser(user); err != nil {
+		return nil, err
+	}
+
+	return user, nil
+}
+
 func (u *userUsecase) GetAllUsers() ([]domain.User, error) {
 	return u.userRepo.GetAllUsers()
 }

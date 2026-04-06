@@ -19,6 +19,10 @@ func (r *userRepository) BulkInsertUsers(users []domain.User) error {
 	return r.db.CreateInBatches(&users, 100).Error
 }
 
+func (r *userRepository) CreateUser(user *domain.User) error {
+	return r.db.Create(user).Error
+}
+
 func (r *userRepository) GetUserByEmail(email string) (domain.User, error) {
 	var user domain.User
 	err := r.db.Where("email = ?", email).First(&user).Error
