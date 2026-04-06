@@ -19,14 +19,14 @@ func NewUserHandler(r *gin.Engine, us domain.UserUsecase) {
 	handler := &UserHandler{userUsecase: us}
 	// Daftarkan route API di sini
 	r.POST("/api/users/login", handler.Login)
+	r.POST("/api/users/refresh", handler.RefreshToken)
 	protectedUser := r.Group("/api/users")
 	protectedUser.Use(middleware.RequireAuth())
 	{
-		r.GET("", handler.GetAll)
-		r.PUT("/:user_id", handler.UpdateUser)
-		r.DELETE("/:user_id", handler.DeleteUser)
-		r.POST("/import", handler.ImportCSV)
-		r.POST("/refresh", handler.RefreshToken)
+		protectedUser.GET("", handler.GetAll)
+		protectedUser.PUT("/:user_id", handler.UpdateUser)
+		protectedUser.DELETE("/:user_id", handler.DeleteUser)
+		protectedUser.POST("/import", handler.ImportCSV)
 	}
 
 }
