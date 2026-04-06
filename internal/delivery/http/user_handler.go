@@ -22,7 +22,7 @@ func NewUserHandler(r *gin.Engine, us domain.UserUsecase) {
 	protectedUser := r.Group("/api/users")
 	protectedUser.Use(middleware.RequireAuth())
 	{
-		r.GET("/", handler.GetAll)
+		r.GET("", handler.GetAll)
 		r.PUT("/:user_id", handler.UpdateUser)
 		r.DELETE("/:user_id", handler.DeleteUser)
 		r.POST("/import", handler.ImportCSV)
