@@ -18,6 +18,11 @@ type EnrollmentRepository interface {
 	Unenroll(courseID, userID uint) error
 	CheckEnrollment(courseID, userID uint) (bool, error)
 	GetEnrolledUsers(courseID uint) ([]Enrollment, error)
+	CheckQuizAccess(quizID, userID uint) (bool, error)
+	CheckModuleAccess(moduleID, userID uint) (bool, error)
+	CheckExamAccess(examID, userID uint) (bool, error)
+	CheckLessonAccess(lessonID, userID uint) (bool, error)
+	CheckQuestionAccess(questionID, userID uint) (bool, error)
 }
 
 type EnrollmentUsecase interface {

@@ -16,19 +16,29 @@ type ModuleHandler struct {
 func NewModuleHandler(r *gin.Engine, mu domain.ModuleUsecase, er domain.EnrollmentRepository) {
 	handler := &ModuleHandler{moduleUsecase: mu}
 
-	lessonAuth := r.Group("/api")
-	lessonAuth.Use(middleware.RequireAuth(), middleware.RequireCourseAccess(er))
-	// Contoh: /api/courses/1/modules
-	lessonAuth.GET("/courses/:course_id/modules", handler.GetByCourse)
-
-	lessonMgmt := r.Group("/api")
-	lessonMgmt.Use(middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
+	// Akses untuk Siswa yang terdaftar di mata pelajaran, Tutor dan Admin
+	moduleProtected := r.Group("/api")
+	moduleProtected.Use(middleware.RequireAuth(), middleware.RequireModuleAccess(er))
 	{
-		// Contoh: /api/courses/1/modules
-		lessonMgmt.POST("/courses/:course_id/modules", handler.Create)
-		lessonMgmt.GET("/modules/:module_id", handler.GetByID)
-		lessonMgmt.PUT("/modules/:module_id", handler.Update)
-		lessonMgmt.DELETE("/modules/:module_id", handler.Delete)
+		moduleProtected.GET("/modules/:module_id", handler.GetByID)
+	}
+
+	// Akses untuk Siswa yang terdaftar di mata pelajaran, Tutor dan Admin
+	moduleProtected2 := r.Group("/api")
+	moduleProtected2.Use(middleware.RequireAuth(), middleware.RequireCourseAccess(er))
+	{
+		moduleProtected2.GET("/courses/:course_id/modules", handler.GetByCourse)
+	}
+
+	// Akses untuk Siswa yang terdaftar di mata pelajaran, Tutor dan Admin
+	// Akses Hanya untuk Tutor dan Admin
+	modulePrivate := r.Group("/api")
+	modulePrivate.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
+	{
+		modulePrivate.POST("/modules", handler.Create)
+		modulePrivate.PUT("/modules/:module_id", handler.Update)
+		modulePrivate.DELETE("/modules/:module_id", handler.Delete)
+
 	}
 }
 

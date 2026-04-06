@@ -15,30 +15,42 @@ type QuizHandler struct {
 	questionUsecase domain.QuestionUsecase
 }
 
-func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuestionUsecase) {
+func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuestionUsecase, er domain.EnrollmentRepository) {
 	handler := &QuizHandler{
 		quizUsecase:     qu,
 		questionUsecase: qnu,
 	}
 
-	quizAuth := r.Group("/api")
-	quizAuth.Use(middleware.RequireAuth())
-	quizAuth.GET("/modules/:module_id/quizzes", handler.GetQuizzesByModule)
-	quizAuth.GET("/quizzes/:quiz_id/questions", handler.GetQuestionsByQuiz)
-	quizAuth.GET("/questions/:question_id", handler.GetQuestionByID)
-	quizAuth.GET("/quizzes/:quiz_id", handler.GetQuizByID)
-	quizMgmt := r.Group("/api")
-	quizMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
+	quizProtected := r.Group("/api")
+	quizProtected.Use(middleware.RequireAuth(), middleware.RequireModuleAccess(er))
+	{
+		quizProtected.GET("/modules/:module_id/quizzes", handler.GetQuizzesByModule)
+	}
+	quizProtected2 := r.Group("/api")
+	quizProtected2.Use(middleware.RequireAuth(), middleware.RequireQuizAccess(er))
+	{
+		quizProtected2.GET("/quizzes/:quiz_id/questions", handler.GetQuestionsByQuiz)
+		quizProtected.GET("/quizzes/:quiz_id", handler.GetQuizByID)
+	}
+
+	quizProtected3 := r.Group("/api")
+	quizProtected3.Use(middleware.RequireAuth(), middleware.RequireQuestionAccess(er))
+	{
+		quizProtected3.GET("/questions/:question_id", handler.GetQuestionByID)
+	}
+
+	quizPrivate := r.Group("/api")
+	quizPrivate.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
 		// Quiz Management
-		quizMgmt.POST("/modules/:module_id/quizzes", handler.CreateQuiz)
-		quizMgmt.PUT("/quizzes/:quiz_id", handler.UpdateQuiz)
-		quizMgmt.DELETE("/quizzes/:quiz_id", handler.DeleteQuiz)
+		quizPrivate.POST("/modules/:module_id/quizzes", handler.CreateQuiz)
+		quizPrivate.PUT("/quizzes/:quiz_id", handler.UpdateQuiz)
+		quizPrivate.DELETE("/quizzes/:quiz_id", handler.DeleteQuiz)
 
 		// Question Management (Nested under Quiz)
-		quizMgmt.POST("/quizzes/:quiz_id/questions", handler.CreateQuestion)
-		quizMgmt.PUT("/questions/:question_id", handler.UpdateQuestion)
-		quizMgmt.DELETE("/questions/:question_id", handler.DeleteQuestion)
+		quizPrivate.POST("/quizzes/:quiz_id/questions", handler.CreateQuestion)
+		quizPrivate.PUT("/questions/:question_id", handler.UpdateQuestion)
+		quizPrivate.DELETE("/questions/:question_id", handler.DeleteQuestion)
 	}
 }
 

@@ -14,28 +14,36 @@ type CourseHandler struct {
 	enrollUsecase domain.EnrollmentUsecase
 }
 
-func NewCourseHandler(r *gin.Engine, cu domain.CourseUsecase, eu domain.EnrollmentUsecase) {
+func NewCourseHandler(r *gin.Engine, cu domain.CourseUsecase, eu domain.EnrollmentUsecase, er domain.EnrollmentRepository) {
 	handler := &CourseHandler{
 		courseUsecase: cu,
 		enrollUsecase: eu,
 	}
 
-	courseAuth := r.Group("/api/courses")
-	courseAuth.Use(middleware.RequireAuth())
+	// Akses untuk semua yang login (Siswa, Tutor, Admin)
+	courseGeneral := r.Group("/api/courses")
+	courseGeneral.Use(middleware.RequireAuth())
 	{
-		courseAuth.GET("", handler.GetAll)
-		courseAuth.GET("/:course_id", handler.GetByID)
+		courseGeneral.GET("", handler.GetAll)
 	}
 
-	courseMgmt := courseAuth.Group("")
-	courseMgmt.Use(middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
+	// Akses untuk Siswa yang terdaftar di mata pelajaran, Tutor dan Admin
+	courseProtected := courseGeneral.Group("/:course_id")
+	courseProtected.Use(middleware.RequireCourseAccess(er))
 	{
-		courseMgmt.POST("", handler.Create)
-		courseMgmt.PUT("/:course_id", handler.Update)
-		courseMgmt.GET("/:course_id/enrollments", handler.GetEnrollments)
-		courseMgmt.POST("/:course_id/enrollments/:user_id", handler.EnrollStudent)
-		courseMgmt.DELETE("/:course_id/enrollments/:user_id", handler.UnenrollStudent)
-		courseMgmt.DELETE("/:course_id", handler.Delete)
+		courseProtected.GET("", handler.GetByID)
+	}
+
+	// Akses Hanya untuk Tutor dan Admin
+	coursePrivate := courseGeneral.Group("")
+	coursePrivate.Use(middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
+	{
+		coursePrivate.POST("", handler.Create)
+		coursePrivate.PUT("/:course_id", handler.Update)
+		coursePrivate.GET("/:course_id/enrollments", handler.GetEnrollments)
+		coursePrivate.POST("/:course_id/enrollments/:user_id", handler.EnrollStudent)
+		coursePrivate.DELETE("/:course_id/enrollments/:user_id", handler.UnenrollStudent)
+		coursePrivate.DELETE("/:course_id", handler.Delete)
 	}
 }
 

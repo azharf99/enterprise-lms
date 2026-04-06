@@ -56,10 +56,10 @@ func main() {
 	protedcted := r.Group("/")
 	protedcted.Use(middleware.RequireAuth())
 	{
-		http.NewCourseHandler(r, courseUsecase, enrollmentUsecase)
+		http.NewCourseHandler(r, courseUsecase, enrollmentUsecase, enrollmentRepo)
 		http.NewModuleHandler(r, moduleUsecase, enrollmentRepo)
-		http.NewLessonHandler(r, lessonUsecase)
-		http.NewQuizHandler(r, quizUsecase, questionUsecase)
+		http.NewLessonHandler(r, lessonUsecase, enrollmentRepo)
+		http.NewQuizHandler(r, quizUsecase, questionUsecase, enrollmentRepo)
 		http.NewAttemptHandler(r, quizUsecase)
 		http.NewExamHandler(r, examUsecase)
 		http.NewAnalyticsHandler(r, analyticsUsecase)
