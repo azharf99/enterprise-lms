@@ -152,15 +152,26 @@ func (u *userUsecase) RefreshAccessToken(refreshToken string) (*utils.TokenPair,
 	return utils.GenerateTokenPair(user.ID, string(user.Role))
 }
 
-func (u *userUsecase) UpdateUser(id uint, name, email string, role domain.Role) (*domain.User, error) {
+func (u *userUsecase) UpdateUser(id uint, name, email, password string, role domain.Role) (*domain.User, error) {
 	user, err := u.userRepo.GetUserByID(id)
 	if err != nil {
 		return nil, errors.New("Pengguna tidak ditemukan")
 	}
 
+	var hashedPassword string
+	if password != "" {
+		hashedPassword, err = utils.HashPassword(password)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		hashedPassword = user.Password
+	}
+
 	user.Name = name
 	user.Email = email
 	user.Role = role
+	user.Password = hashedPassword
 
 	// Perbarui data dasar
 	if err := u.userRepo.UpdateUser(&user); err != nil {

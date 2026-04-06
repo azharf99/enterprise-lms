@@ -139,7 +139,7 @@ func (h *UserHandler) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	user, err := h.userUsecase.UpdateUser(uint(id), req.Name, req.Email, req.Role)
+	user, err := h.userUsecase.UpdateUser(uint(id), req.Name, req.Email, req.Password, req.Role)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

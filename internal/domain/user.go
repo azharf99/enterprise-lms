@@ -43,7 +43,7 @@ type UserUsecase interface {
 	ImportFromCSV(records [][]string) (int, error)
 	GetAllUsers() ([]User, error)
 	CreateUser(name, email, password string, role Role) (*User, error)
-	UpdateUser(id uint, name, email string, role Role) (*User, error)
+	UpdateUser(id uint, name, email, password string, role Role) (*User, error)
 	DeleteUser(id uint) error
 	Login(email, password string) (*utils.TokenPair, error)
 	RefreshAccessToken(refreshToken string) (*utils.TokenPair, error) // Fungsi baru
@@ -56,14 +56,15 @@ type LoginRequest struct {
 }
 
 type UserUpdateRequest struct {
-	Name  string `json:"name" binding:"required"`
-	Email string `json:"email" binding:"required,email"`
-	Role  Role   `json:"role" binding:"required,oneof=Siswa Tutor Admin Editor"`
+	Name     string `json:"name" binding:"required"`
+	Email    string `json:"email" binding:"required,email"`
+	Password string `json:"password" binding:"omitempty"`
+	Role     Role   `json:"role" binding:"required,oneof=Siswa Tutor Admin Editor"`
 }
 
 type UserCreateRequest struct {
 	Name     string `json:"name" binding:"required"`
-	Password string `gorm:"type:varchar(255);not null" json:"-"`
+	Password string `json:"password" binding:"required"`
 	Email    string `json:"email" binding:"required,email"`
 	Role     Role   `json:"role" binding:"required,oneof=Siswa Tutor Admin Editor"`
 }
