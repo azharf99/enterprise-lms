@@ -71,7 +71,7 @@ func (u *userUsecase) ImportFromCSV(records [][]string) (int, error) {
 	}
 
 	// Panggil repository untuk menyimpan data
-	err := u.userRepo.BulkInsert(users)
+	err := u.userRepo.BulkInsertUsers(users)
 	if err != nil {
 		return 0, err
 	}
@@ -79,9 +79,13 @@ func (u *userUsecase) ImportFromCSV(records [][]string) (int, error) {
 	return len(users), nil
 }
 
+func (u *userUsecase) GetAllUsers() ([]domain.User, error) {
+	return u.userRepo.GetAllUsers()
+}
+
 func (u *userUsecase) Login(email, password string) (*utils.TokenPair, error) {
 	// 1. Cari user di database
-	user, err := u.userRepo.GetByEmail(email)
+	user, err := u.userRepo.GetUserByEmail(email)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, errors.New("email atau password salah")
@@ -107,11 +111,40 @@ func (u *userUsecase) RefreshAccessToken(refreshToken string) (*utils.TokenPair,
 	}
 
 	// 2. Cek apakah user masih ada di database dan belum di-banned/dihapus
-	user, err := u.userRepo.GetByID(userID)
+	user, err := u.userRepo.GetUserByID(userID)
 	if err != nil {
 		return nil, errors.New("pengguna tidak ditemukan atau tidak aktif")
 	}
 
 	// 3. Buat pasangan token yang baru
 	return utils.GenerateTokenPair(user.ID, string(user.Role))
+}
+
+func (u *userUsecase) UpdateUser(id uint, name, email string, role domain.Role) (*domain.User, error) {
+	user, err := u.userRepo.GetUserByID(id)
+	if err != nil {
+		return nil, errors.New("Pengguna tidak ditemukan")
+	}
+
+	user.Name = name
+	user.Email = email
+	user.Role = role
+
+	// Perbarui data dasar
+	if err := u.userRepo.UpdateUser(&user); err != nil {
+		return nil, err
+	}
+
+	// Ambil data terbaru untuk dikembalikan
+	updatedUser, _ := u.userRepo.GetUserByID(id)
+	return &updatedUser, nil
+}
+
+func (u *userUsecase) DeleteUser(id uint) error {
+	// Pastikan user ada sebelum dihapus
+	_, err := u.userRepo.GetUserByID(id)
+	if err != nil {
+		return errors.New("Pengguna tidak ditemukan")
+	}
+	return u.userRepo.DeleteUser(id)
 }

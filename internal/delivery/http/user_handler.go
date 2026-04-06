@@ -3,6 +3,7 @@ package http
 import (
 	"encoding/csv"
 	"net/http"
+	"strconv"
 
 	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
@@ -18,11 +19,14 @@ func NewUserHandler(r *gin.Engine, us domain.UserUsecase) {
 	handler := &UserHandler{userUsecase: us}
 	// Daftarkan route API di sini
 	r.POST("/api/users/login", handler.Login)
-	protectedUser := r.Group("/")
+	protectedUser := r.Group("/api/users")
 	protectedUser.Use(middleware.RequireAuth())
 	{
-		r.POST("/api/users/import", handler.ImportCSV)
-		r.POST("/api/users/refresh", handler.RefreshToken)
+		r.GET("/", handler.GetAll)
+		r.PUT("/:user_id", handler.UpdateUser)
+		r.DELETE("/:user_id", handler.DeleteUser)
+		r.POST("/import", handler.ImportCSV)
+		r.POST("/refresh", handler.RefreshToken)
 	}
 
 }
@@ -53,6 +57,15 @@ func (h *UserHandler) ImportCSV(c *gin.Context) {
 		"message": "Berhasil mengimpor pengguna",
 		"total":   totalInserted,
 	})
+}
+
+func (h *UserHandler) GetAll(c *gin.Context) {
+	users, err := h.userUsecase.GetAllUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": users})
 }
 
 func (h *UserHandler) Login(c *gin.Context) {
@@ -95,4 +108,46 @@ func (h *UserHandler) RefreshToken(c *gin.Context) {
 		"message": "Token berhasil diperbarui",
 		"tokens":  tokenPair,
 	})
+}
+
+func (h *UserHandler) UpdateUser(c *gin.Context) {
+	idParam := c.Param("user_id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
+		return
+	}
+
+	var req domain.UserUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format request tidak valid"})
+		return
+	}
+
+	user, err := h.userUsecase.UpdateUser(uint(id), req.Name, req.Email, req.Role)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Pengguna berhasil diperbarui",
+		"data":    user,
+	})
+}
+
+func (h *UserHandler) DeleteUser(c *gin.Context) {
+	idParam := c.Param("user_id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
+		return
+	}
+
+	if err := h.userUsecase.DeleteUser(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Pengguna berhasil dihapus"})
 }

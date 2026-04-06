@@ -29,14 +29,20 @@ type User struct {
 
 // UserRepository adalah kontrak untuk berinteraksi dengan database
 type UserRepository interface {
-	BulkInsert(users []User) error
-	GetByEmail(email string) (User, error)
-	GetByID(id uint) (User, error) // Tambahan baru untuk mengecek eksistensi user saat refresh
+	BulkInsertUsers(users []User) error
+	GetUserByEmail(email string) (User, error)
+	GetAllUsers() ([]User, error)
+	GetUserByID(id uint) (User, error)
+	UpdateUser(user *User) error
+	DeleteUser(id uint) error
 }
 
 // UserUsecase adalah kontrak untuk logika bisnis
 type UserUsecase interface {
 	ImportFromCSV(records [][]string) (int, error)
+	GetAllUsers() ([]User, error)
+	UpdateUser(id uint, name, email string, role Role) (*User, error)
+	DeleteUser(id uint) error
 	Login(email, password string) (*utils.TokenPair, error)
 	RefreshAccessToken(refreshToken string) (*utils.TokenPair, error) // Fungsi baru
 }
@@ -45,6 +51,12 @@ type UserUsecase interface {
 type LoginRequest struct {
 	Email    string `json:"email" binding:"required,email"`
 	Password string `json:"password" binding:"required"`
+}
+
+type UserUpdateRequest struct {
+	Name  string `json:"name" binding:"required"`
+	Email string `json:"email" binding:"required,email"`
+	Role  Role   `json:"role" binding:"required,oneof=Siswa Tutor Admin Editor"`
 }
 
 // RefreshRequest adalah format data saat frontend meminta access token baru
