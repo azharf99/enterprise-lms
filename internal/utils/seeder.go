@@ -15,9 +15,10 @@ func SeedAdmin(db *gorm.DB) {
 	hash, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
 	if count == 0 {
 		adminUser := domain.User{
+			Name:     "Admin Ganteng",
 			Email:    "admin@gmail.com",
 			Password: string(hash),
-			Role:     "admin123",
+			Role:     "Admin",
 		}
 		if err := db.Create(&adminUser).Error; err != nil {
 			fmt.Println("❌ Gagal membuat akun admin:", err)
