@@ -10,7 +10,7 @@ import (
 
 func SeedAdmin(db *gorm.DB) {
 	var count int64
-	db.Model(&domain.User{}).Where("username = ?", "admin").Count(&count)
+	db.Model(&domain.User{}).Where("email = ?", "admin@gmail.com").Count(&count)
 
 	hash, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
 	if count == 0 {
