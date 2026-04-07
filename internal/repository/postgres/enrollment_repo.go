@@ -47,6 +47,7 @@ func (r *enrollmentRepositoy) CheckQuizAccess(quizID, userID uint) (bool, error)
 
 	return count > 0, err
 }
+
 // CheckQuestionAccess mengecek akses hanya dengan 1 kali ke database
 func (r *enrollmentRepositoy) CheckQuestionAccess(questionID, userID uint) (bool, error) {
 	var count int64
@@ -101,6 +102,19 @@ func (r *enrollmentRepositoy) CheckExamAccess(examID, userID uint) (bool, error)
 	err := r.db.Table("enrollments").
 		Joins("JOIN exams ON enrollments.course_id = exams.course_id").
 		Where("exams.id = ? AND enrollments.user_id = ?", examID, userID).
+		Count(&count).Error
+
+	return count > 0, err
+}
+
+// CheckExamAttemptAccess mengecek akses upaya ujian langsung ke tabel enrollments
+func (r *enrollmentRepositoy) CheckExamAttemptAccess(attemptID, userID uint) (bool, error) {
+	var count int64
+	// SQL Setara: SELECT count(*) FROM enrollments e JOIN exams ex ON e.course_id = ex.course_id WHERE ex.id = ? AND e.user_id = ?
+	err := r.db.Table("enrollments").
+		Joins("JOIN exams ON enrollments.course_id = exams.course_id").
+		Joins("JOIN exam_attempts ON exams.id = exam_attempts.exam_id").
+		Where("exam_attempts.id = ? AND enrollments.user_id = ?", attemptID, userID).
 		Count(&count).Error
 
 	return count > 0, err

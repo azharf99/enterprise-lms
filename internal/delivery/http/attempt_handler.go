@@ -14,16 +14,20 @@ type AttemptHandler struct {
 	quizUsecase domain.QuizUsecase
 }
 
-func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase) {
+func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase, er domain.EnrollmentRepository) {
 	handler := &AttemptHandler{quizUsecase: qu}
 
-	attemptAuth := r.Group("/api")
-	attemptAuth.Use(middleware.RequireAuth())
+	examProtected1 := r.Group("/api")
+	examProtected1.Use(middleware.RequireAuth(), middleware.RequireQuizAccess(er))
 	{
 		// Memulai kuis
-		attemptAuth.POST("/quizzes/:quiz_id/attempts", handler.StartAttempt)
+		examProtected1.POST("/quizzes/:quiz_id/attempts", handler.StartAttempt)
+	}
+	examProtected2 := r.Group("/api")
+	examProtected2.Use(middleware.RequireAuth(), middleware.RequireExamAttemptAccess(er))
+	{
 		// Mengirimkan jawaban kuis
-		attemptAuth.POST("/attempts/:attempt_id/submit", handler.SubmitAttempt)
+		examProtected2.POST("/attempts/:attempt_id/submit", handler.SubmitAttempt)
 	}
 }
 

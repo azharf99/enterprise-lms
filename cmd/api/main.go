@@ -60,8 +60,8 @@ func main() {
 		http.NewModuleHandler(r, moduleUsecase, enrollmentRepo)
 		http.NewLessonHandler(r, lessonUsecase, enrollmentRepo)
 		http.NewQuizHandler(r, quizUsecase, questionUsecase, enrollmentRepo)
-		http.NewAttemptHandler(r, quizUsecase)
-		http.NewExamHandler(r, examUsecase)
+		http.NewAttemptHandler(r, quizUsecase, enrollmentRepo)
+		http.NewExamHandler(r, examUsecase, enrollmentRepo)
 		http.NewAnalyticsHandler(r, analyticsUsecase)
 	}
 

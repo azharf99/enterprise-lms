@@ -14,7 +14,7 @@ type ExamHandler struct {
 	examUsecase domain.ExamUsecase
 }
 
-func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase) {
+func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRepository) {
 	handler := &ExamHandler{examUsecase: eu}
 
 	// Endpoint Manajemen Ujian (Admin/Tutor)
@@ -25,8 +25,10 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase) {
 	}
 
 	examAuth := r.Group("/api/exams/:exam_id")
-	examAuth.Use(middleware.RequireAuth())
-	examAuth.POST("/attempts", handler.StartAttempt)
+	examAuth.Use(middleware.RequireAuth(), middleware.RequireExamAccess(er))
+	{
+		examAuth.POST("/attempts", handler.StartAttempt)
+	}
 	examMgmt := r.Group("/api/exams/:exam_id")
 	examMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{

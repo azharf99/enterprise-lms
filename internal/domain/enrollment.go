@@ -21,6 +21,7 @@ type EnrollmentRepository interface {
 	CheckQuizAccess(quizID, userID uint) (bool, error)
 	CheckModuleAccess(moduleID, userID uint) (bool, error)
 	CheckExamAccess(examID, userID uint) (bool, error)
+	CheckExamAttemptAccess(attemptID, userID uint) (bool, error)
 	CheckLessonAccess(lessonID, userID uint) (bool, error)
 	CheckQuestionAccess(questionID, userID uint) (bool, error)
 }

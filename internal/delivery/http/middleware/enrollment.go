@@ -75,6 +75,28 @@ func RequireExamAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFu
 	}
 }
 
+// 4. RequireExamAttemptAccess: Versi Teroptimasi (Single Query)
+func RequireExamAttemptAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userRole, _ := c.Get("role")
+		if userRole == "Admin" || userRole == "Tutor" {
+			c.Next()
+			return
+		}
+
+		userIDVal, _ := c.Get("user_id")
+		userID := uint(userIDVal.(float64))
+		attemptID, _ := strconv.ParseUint(c.Param("attempt_id"), 10, 32)
+
+		hasAccess, err := enrollmentRepo.CheckExamAttemptAccess(uint(attemptID), userID)
+		if err != nil || !hasAccess {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Akses Ditolak. Anda tidak berhak mengakses ujian ini."})
+			return
+		}
+		c.Next()
+	}
+}
+
 func RequireQuizAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		userRole, _ := c.Get("role")
