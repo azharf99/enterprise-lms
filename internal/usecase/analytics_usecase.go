@@ -22,12 +22,12 @@ func NewAnalyticsUsecase(er domain.ExamRepository, ear domain.ExamAttemptReposit
 }
 
 func (u *analyticsUsecase) GetExamAnalytics(examID uint) (*domain.ExamAnalyticsDTO, error) {
-	exam, err := u.examRepo.GetByID(examID)
+	exam, err := u.examRepo.GetExamByID(examID)
 	if err != nil {
 		return nil, errors.New("ujian tidak ditemukan")
 	}
 
-	attempts, err := u.examAttemptRepo.GetByExamID(examID)
+	attempts, err := u.examAttemptRepo.GetExamAttemptsByExamID(examID)
 	if err != nil {
 		return nil, errors.New("gagal mengambil data pengerjaan ujian")
 	}
@@ -69,12 +69,12 @@ func (u *analyticsUsecase) GetExamAnalytics(examID uint) (*domain.ExamAnalyticsD
 }
 
 func (u *analyticsUsecase) GetItemAnalysis(examID uint) ([]domain.ItemAnalysisDTO, error) {
-	exam, err := u.examRepo.GetByID(examID)
+	exam, err := u.examRepo.GetExamByID(examID)
 	if err != nil {
 		return nil, err
 	}
 
-	attempts, err := u.examAttemptRepo.GetByExamID(examID)
+	attempts, err := u.examAttemptRepo.GetExamAttemptsByExamID(examID)
 	if err != nil {
 		return nil, err
 	}

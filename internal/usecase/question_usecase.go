@@ -8,10 +8,10 @@ import (
 )
 
 type questionUsecase struct {
-	questionRepo domain.QuestionRepository
+	questionRepo domain.QuizQuestionRepository
 }
 
-func NewQuestionUsecase(qr domain.QuestionRepository) domain.QuestionUsecase {
+func NewQuizQuestionUsecase(qr domain.QuizQuestionRepository) domain.QuizQuestionUsecase {
 	return &questionUsecase{questionRepo: qr}
 }
 
@@ -30,22 +30,22 @@ func (u *questionUsecase) CreateQuestion(quizID uint, qType domain.QuestionType,
 		Explanation:   explanation,
 	}
 
-	if err := u.questionRepo.Create(question); err != nil {
+	if err := u.questionRepo.CreateQuizQuestion(question); err != nil {
 		return nil, err
 	}
 	return question, nil
 }
 
 func (u *questionUsecase) GetQuestionsByQuizID(quizID uint, isRandomized bool) ([]domain.Question, error) {
-	return u.questionRepo.GetByQuizID(quizID, isRandomized)
+	return u.questionRepo.GetQuizQuestionsByQuizID(quizID, isRandomized)
 }
 
 func (u *questionUsecase) GetQuestionByID(id uint) (domain.Question, error) {
-	return u.questionRepo.GetByID(id)
+	return u.questionRepo.GetQuizQuestionByID(id)
 }
 
 func (u *questionUsecase) UpdateQuestion(id uint, qType domain.QuestionType, text string, options, correctAnswer datatypes.JSON, points int, explanation string) (*domain.Question, error) {
-	question, err := u.questionRepo.GetByID(id)
+	question, err := u.questionRepo.GetQuizQuestionByID(id)
 	if err != nil {
 		return nil, errors.New("pertanyaan tidak ditemukan")
 	}
@@ -57,12 +57,12 @@ func (u *questionUsecase) UpdateQuestion(id uint, qType domain.QuestionType, tex
 	question.Points = points
 	question.Explanation = explanation
 
-	if err := u.questionRepo.Update(&question); err != nil {
+	if err := u.questionRepo.UpdateQuizQuestion(&question); err != nil {
 		return nil, err
 	}
 	return &question, nil
 }
 
 func (u *questionUsecase) DeleteQuestion(id uint) error {
-	return u.questionRepo.Delete(id)
+	return u.questionRepo.DeleteQuizQuestion(id)
 }

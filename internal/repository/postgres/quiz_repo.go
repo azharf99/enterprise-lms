@@ -13,26 +13,26 @@ func NewQuizRepository(db *gorm.DB) domain.QuizRepository {
 	return &quizRepository{db: db}
 }
 
-func (r *quizRepository) Create(quiz *domain.Quiz) error {
+func (r *quizRepository) CreateQuiz(quiz *domain.Quiz) error {
 	return r.db.Create(quiz).Error
 }
 
-func (r *quizRepository) GetByModuleID(modulID uint) ([]domain.Quiz, error) {
+func (r *quizRepository) GetQuizzesByModuleID(moduleID uint) ([]domain.Quiz, error) {
 	var quizzes []domain.Quiz
-	err := r.db.Where("module_id = ?", modulID).Find(&quizzes).Error
+	err := r.db.Where("module_id = ?", moduleID).Find(&quizzes).Error
 	return quizzes, err
 }
 
-func (r *quizRepository) GetByID(id uint) (domain.Quiz, error) {
+func (r *quizRepository) GetQuizByID(id uint) (domain.Quiz, error) {
 	var quiz domain.Quiz
 	err := r.db.Preload("Questions").First(&quiz, id).Error
 	return quiz, err
 }
 
-func (r *quizRepository) Update(quiz *domain.Quiz) error {
+func (r *quizRepository) UpdateQuiz(quiz *domain.Quiz) error {
 	return r.db.Model(quiz).Updates(quiz).Error
 }
 
-func (r *quizRepository) Delete(id uint) error {
+func (r *quizRepository) DeleteQuiz(id uint) error {
 	return r.db.Delete(&domain.Quiz{}, id).Error
 }

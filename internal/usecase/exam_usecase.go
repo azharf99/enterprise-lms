@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"bytes"
+	cripto_rand "crypto/rand"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -36,30 +37,30 @@ func (u *examUsecase) CreateExam(courseID uint, title, examType, description str
 		StartTime:    startTime,
 		EndTime:      endTime,
 	}
-	if err := u.examRepo.Create(exam); err != nil {
+	if err := u.examRepo.CreateExam(exam); err != nil {
 		return nil, err
 	}
 	return exam, nil
 }
 
 func (u *examUsecase) GenerateCBTToken(examID uint) (string, error) {
-	exam, err := u.examRepo.GetByID(examID)
+	exam, err := u.examRepo.GetExamByID(examID)
 	if err != nil {
 		return "", errors.New("ujian tidak ditemukan")
 	}
 
 	bytes := make([]byte, 3) // Menghasilkan 6 karakter hex (misal: "a1b2c3")
-	rand.Read(bytes)
+	cripto_rand.Read(bytes)
 	token := hex.EncodeToString(bytes)
 
 	exam.CBTToken = token
-	if err := u.examRepo.Update(&exam); err != nil {
+	if err := u.examRepo.UpdateExam(&exam); err != nil {
 		return "", err
 	}
 	return token, nil
 }
 
-func (u *examUsecase) GenerateQuestionsWithAI(examID uint, qType, topic string, count int) ([]domain.ExamQuestion, error) {
+func (u *examUsecase) GenerateExamQuestionsWithAI(examID uint, qType, topic string, count int) ([]domain.ExamQuestion, error) {
 	jsonResponse, err := utils.GenerateQuizJSON(topic, qType, count) // Memakai fungsi AI di pkg/utils/gemini.go
 	if err != nil {
 		return nil, errors.New("gagal generate soal: " + err.Error())
@@ -93,15 +94,15 @@ func (u *examUsecase) GenerateQuestionsWithAI(examID uint, qType, topic string, 
 			Points:        aiQ.Points,
 			Explanation:   aiQ.Explanation,
 		}
-		if u.examQuestionRepo.Create(newQ) == nil {
+		if u.examQuestionRepo.CreateExamQuestion(newQ) == nil {
 			saved = append(saved, *newQ)
 		}
 	}
 	return saved, nil
 }
 
-func (u *examUsecase) StartAttempt(examID, userID uint, inputToken string) (*domain.ExamAttempt, []domain.ExamQuestion, error) {
-	exam, err := u.examRepo.GetByID(examID)
+func (u *examUsecase) StartExamAttempt(examID, userID uint, inputToken string) (*domain.ExamAttempt, []domain.ExamQuestion, error) {
+	exam, err := u.examRepo.GetExamByID(examID)
 	if err != nil {
 		return nil, nil, errors.New("ujian tidak ditemukan")
 	}
@@ -121,7 +122,7 @@ func (u *examUsecase) StartAttempt(examID, userID uint, inputToken string) (*dom
 	}
 
 	// 3. Cek apakah sudah pernah mengerjakan (CBT biasanya 1 kali percobaan)
-	_, err = u.examAttemptRepo.GetLatestAttempt(examID, userID)
+	_, err = u.examAttemptRepo.GetLatestExamAttempt(examID, userID)
 	if err == nil {
 		return nil, nil, errors.New("anda sudah mengerjakan ujian ini")
 	}
@@ -131,7 +132,7 @@ func (u *examUsecase) StartAttempt(examID, userID uint, inputToken string) (*dom
 		UserID:    userID,
 		StartedAt: now,
 	}
-	if err := u.examAttemptRepo.Create(attempt); err != nil {
+	if err := u.examAttemptRepo.CreateExamAttempt(attempt); err != nil {
 		return nil, nil, err
 	}
 
@@ -144,10 +145,37 @@ func (u *examUsecase) StartAttempt(examID, userID uint, inputToken string) (*dom
 	return attempt, questions, nil
 }
 
-func (u *examUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) (*domain.ExamAttempt, error) {
+func (u *examUsecase) GetExamsByCourseID(courseID uint) ([]domain.Exam, error) {
+	return u.examRepo.GetExamsByCourseID(courseID)
+}
+
+func (u *examUsecase) GetExamByID(id uint) (domain.Exam, error) {
+	return u.examRepo.GetExamByID(id)
+}
+
+func (u *examUsecase) UpdateExam(id uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
+	exam, err := u.examRepo.GetExamByID(id)
+	if err != nil {
+		return nil, errors.New("ujian tidak ditemukan")
+	}
+
+	exam.Title = title
+	exam.ExamType = examType
+	exam.Description = description
+	exam.TimeLimit = timeLimit
+	exam.PassingScore = passingScore
+	exam.StartTime = startTime
+	exam.EndTime = endTime
+	if err := u.examRepo.UpdateExam(&exam); err != nil {
+		return nil, err
+	}
+	return &exam, nil
+}
+
+func (u *examUsecase) SubmitExamAttempt(examAttemptID uint, userAnswers datatypes.JSON) (*domain.ExamAttempt, error) {
 	// 1. Ambil data Attempt (Pastikan ada GetByID di repo Anda)
 	// Catatan: Anda perlu menambahkan metode ini di examAttemptRepository Anda
-	attempt, err := u.examAttemptRepo.GetByID(attemptID)
+	attempt, err := u.examAttemptRepo.GetExamAttemptByID(examAttemptID)
 	if err != nil {
 		return nil, errors.New("data pengerjaan ujian tidak ditemukan")
 	}
@@ -158,7 +186,7 @@ func (u *examUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	}
 
 	// 2. Ambil Soal-soal Ujian
-	exam, err := u.examRepo.GetByID(attempt.ExamID)
+	exam, err := u.examRepo.GetExamByID(attempt.ExamID)
 	if err != nil {
 		return nil, errors.New("data ujian tidak valid")
 	}
@@ -214,7 +242,7 @@ func (u *examUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	attempt.Score = finalScore
 	attempt.Answers = userAnswers // Simpan JSON jawaban siswa untuk audit
 
-	if err := u.examAttemptRepo.Update(&attempt); err != nil {
+	if err := u.examAttemptRepo.UpdateExamAttempt(&attempt); err != nil {
 		return nil, errors.New("gagal menyimpan hasil ujian")
 	}
 

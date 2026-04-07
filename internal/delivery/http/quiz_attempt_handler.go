@@ -12,6 +12,7 @@ import (
 
 type AttemptHandler struct {
 	quizUsecase domain.QuizUsecase
+	examUsecase domain.ExamUsecase
 }
 
 func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase, er domain.EnrollmentRepository) {

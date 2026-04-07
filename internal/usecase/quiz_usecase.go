@@ -35,22 +35,22 @@ func (u *quizUsecase) CreateQuiz(moduleID uint, title, description string, timeL
 		IsRandomized: isRandomized,
 		MaxAttempts:  maxAttempts,
 	}
-	if err := u.quizRepo.Create(quiz); err != nil {
+	if err := u.quizRepo.CreateQuiz(quiz); err != nil {
 		return nil, err
 	}
 	return quiz, nil
 }
 
 func (u *quizUsecase) GetQuizzesByModule(moduleID uint) ([]domain.Quiz, error) {
-	return u.quizRepo.GetByModuleID(moduleID)
+	return u.quizRepo.GetQuizzesByModuleID(moduleID)
 }
 
 func (u *quizUsecase) GetQuizByID(id uint) (domain.Quiz, error) {
-	return u.quizRepo.GetByID(id)
+	return u.quizRepo.GetQuizByID(id)
 }
 
 func (u *quizUsecase) UpdateQuiz(id uint, title, description string, timeLimit, passingScore int) (*domain.Quiz, error) {
-	module, err := u.quizRepo.GetByID(id)
+	module, err := u.quizRepo.GetQuizByID(id)
 	if err != nil {
 		return nil, errors.New("quiz tidak ditemukan")
 	}
@@ -60,23 +60,23 @@ func (u *quizUsecase) UpdateQuiz(id uint, title, description string, timeLimit, 
 	module.TimeLimit = timeLimit
 	module.PassingScore = passingScore
 
-	if err := u.quizRepo.Update(&module); err != nil {
+	if err := u.quizRepo.UpdateQuiz(&module); err != nil {
 		return nil, err
 	}
 	return &module, nil
 }
 
 func (u *quizUsecase) DeleteQuiz(id uint) error {
-	return u.quizRepo.Delete(id)
+	return u.quizRepo.DeleteQuiz(id)
 }
 
 func (u *quizUsecase) StartAttempt(quizID, userID uint) (*domain.QuizAttempt, []domain.Question, error) {
-	quiz, err := u.quizRepo.GetByID(quizID)
+	quiz, err := u.quizRepo.GetQuizByID(quizID)
 	if err != nil {
 		return nil, nil, errors.New("kuis tidak ditemukan")
 	}
 
-	attempts, _ := u.attemptRepo.GetAttemptsByUser(quizID, userID)
+	attempts, _ := u.attemptRepo.GetQuizAttemptsByUser(quizID, userID)
 	if quiz.MaxAttempts > 0 && len(attempts) >= quiz.MaxAttempts {
 		return nil, nil, errors.New("batas maksimal percobaan kuis telah tercapai")
 	}
@@ -88,7 +88,7 @@ func (u *quizUsecase) StartAttempt(quizID, userID uint) (*domain.QuizAttempt, []
 		StartedAt:     time.Now(),
 	}
 
-	if err := u.attemptRepo.Create(attempt); err != nil {
+	if err := u.attemptRepo.CreateQuizAttempt(attempt); err != nil {
 		return nil, nil, err
 	}
 
@@ -109,7 +109,7 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	// attempt, err := u.attemptRepo.GetLatestAttempt(0, 0) // Kita gunakan ID langsung jika ada method GetByID di repo attempt. Untuk kasus ini, mari asumsikan kita butuh GetByID.
 	// Catatan: Anda harus menambahkan method GetByID(id uint) ke QuizAttemptRepository!
 	// Karena di interface sebelumnya belum ada, mari kita asumsikan kita punya method itu.
-	attempt, err := u.attemptRepo.GetByID(attemptID)
+	attempt, err := u.attemptRepo.GetQuizAttemptByID(attemptID)
 
 	// Untuk contoh ini, saya buat query langsung agar kode ini tidak gagal. Tapi disarankan ditambahkan di Repo.
 	// Jika attempt sudah selesai, tolak.
@@ -118,7 +118,7 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	}
 
 	// 2. Dapatkan kuis dan soal-soalnya untuk dicocokkan
-	quiz, err := u.quizRepo.GetByID(attempt.QuizID)
+	quiz, err := u.quizRepo.GetQuizByID(attempt.QuizID)
 	if err != nil {
 		return nil, err
 	}
@@ -179,7 +179,7 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	attempt.Score = finalScore
 	attempt.Answers = userAnswers
 
-	if err := u.attemptRepo.Update(&attempt); err != nil {
+	if err := u.attemptRepo.UpdateQuizAttempt(&attempt); err != nil {
 		return nil, errors.New("gagal menyimpan hasil kuis")
 	}
 

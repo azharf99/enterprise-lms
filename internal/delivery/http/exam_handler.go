@@ -11,17 +11,21 @@ import (
 )
 
 type ExamHandler struct {
-	examUsecase domain.ExamUsecase
+	examUsecase         domain.ExamUsecase
+	examQuestionUsecase domain.ExamQuestionUsecase
 }
 
-func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRepository) {
-	handler := &ExamHandler{examUsecase: eu}
-
+func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, eq domain.ExamQuestionUsecase, er domain.EnrollmentRepository) {
+	handler := &ExamHandler{
+		examUsecase:         eu,
+		examQuestionUsecase: eq,
+	}
 	// Endpoint Manajemen Ujian (Admin/Tutor)
 	mgmt := r.Group("/api/courses/:course_id/exams")
 	mgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
 		mgmt.POST("", handler.CreateExam)
+		mgmt.GET("", handler.GetExamsByCourseID)
 	}
 
 	examAuth := r.Group("/api/exams/:exam_id")
@@ -29,11 +33,13 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRe
 	{
 		examAuth.POST("/attempts", handler.StartAttempt)
 	}
-	examMgmt := r.Group("/api/exams/:exam_id")
+	examMgmt := r.Group("/api/exams")
 	examMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
-		examMgmt.PATCH("/token", handler.GenerateToken)
-		examMgmt.POST("/generate-ai", handler.GenerateQuestionsAI)
+		examMgmt.GET("/:exam_id", handler.GetExamByID)
+		examMgmt.PUT("/:exam_id", handler.UpdateExam)
+		examMgmt.PATCH("/:exam_id/token", handler.GenerateToken)
+		examMgmt.POST("/:exam_id/generate-ai", handler.GenerateQuestionsAI)
 	}
 }
 
@@ -53,6 +59,57 @@ type CreateExamRequest struct {
 	PassingScore int        `json:"passing_score"`
 	StartTime    *time.Time `json:"start_time"` // Format JSON harus RFC3339, misal: "2026-10-01T08:00:00Z"
 	EndTime      *time.Time `json:"end_time"`
+}
+
+func (h *ExamHandler) GetExamsByCourseID(c *gin.Context) {
+	courseId := c.Param("course_id")
+	id, err := strconv.ParseUint(courseId, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
+		return
+	}
+	exams, err := h.examUsecase.GetExamsByCourseID(uint(id))
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": exams})
+}
+
+func (h *ExamHandler) GetExamByID(c *gin.Context) {
+	examID, _ := strconv.ParseUint(c.Param("exam_id"), 10, 32)
+	exam, err := h.examUsecase.GetExamByID(uint(examID))
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Ujian tidak ditemukan"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"data": exam})
+}
+
+func (h *ExamHandler) UpdateExam(c *gin.Context) {
+	idParam := c.Param("exam_id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
+		return
+	}
+
+	var req CreateExamRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format request tidak valid"})
+		return
+	}
+
+	exam, err := h.examUsecase.UpdateExam(uint(id), req.Title, req.ExamType, req.Description, req.TimeLimit, req.PassingScore, req.StartTime, req.EndTime)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Kuis berhasil diperbarui",
+		"data":    exam,
+	})
 }
 
 // --- Implementasi CreateExam ---
@@ -119,7 +176,7 @@ func (h *ExamHandler) GenerateQuestionsAI(c *gin.Context) {
 		return
 	}
 
-	questions, err := h.examUsecase.GenerateQuestionsWithAI(uint(examID), req.Topic, req.QType, req.Count)
+	questions, err := h.examUsecase.GenerateExamQuestionsWithAI(uint(examID), req.Topic, req.QType, req.Count)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -144,7 +201,7 @@ func (h *ExamHandler) StartAttempt(c *gin.Context) {
 		return
 	}
 
-	attempt, questions, err := h.examUsecase.StartAttempt(uint(examID), userID, req.Token)
+	attempt, questions, err := h.examUsecase.StartExamAttempt(uint(examID), userID, req.Token)
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return

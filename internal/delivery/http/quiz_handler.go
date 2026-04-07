@@ -12,10 +12,10 @@ import (
 
 type QuizHandler struct {
 	quizUsecase     domain.QuizUsecase
-	questionUsecase domain.QuestionUsecase
+	questionUsecase domain.QuizQuestionUsecase
 }
 
-func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuestionUsecase, er domain.EnrollmentRepository) {
+func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuizQuestionUsecase, er domain.EnrollmentRepository) {
 	handler := &QuizHandler{
 		quizUsecase:     qu,
 		questionUsecase: qnu,

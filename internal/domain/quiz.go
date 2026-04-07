@@ -71,27 +71,27 @@ type QuizAttempt struct {
 }
 
 type QuizRepository interface {
-	Create(quiz *Quiz) error
-	GetByModuleID(moduleID uint) ([]Quiz, error)
-	GetByID(id uint) (Quiz, error)
-	Update(quiz *Quiz) error
-	Delete(id uint) error
+	CreateQuiz(quiz *Quiz) error
+	GetQuizzesByModuleID(moduleID uint) ([]Quiz, error)
+	GetQuizByID(id uint) (Quiz, error)
+	UpdateQuiz(quiz *Quiz) error
+	DeleteQuiz(id uint) error
 }
 
-type QuestionRepository interface {
-	Create(question *Question) error
-	GetByQuizID(quizID uint, isRandomized bool) ([]Question, error)
-	GetByID(id uint) (Question, error)
-	Update(question *Question) error
-	Delete(id uint) error
+type QuizQuestionRepository interface {
+	CreateQuizQuestion(question *Question) error
+	GetQuizQuestionsByQuizID(quizID uint, isRandomized bool) ([]Question, error)
+	GetQuizQuestionByID(id uint) (Question, error)
+	UpdateQuizQuestion(question *Question) error
+	DeleteQuizQuestion(id uint) error
 }
 
 type QuizAttemptRepository interface {
-	Create(attempt *QuizAttempt) error
-	GetByID(id uint) (QuizAttempt, error)
-	GetLatestAttempt(quizID, userID uint) (QuizAttempt, error)
-	GetAttemptsByUser(quizID, userID uint) ([]QuizAttempt, error)
-	Update(attempt *QuizAttempt) error
+	CreateQuizAttempt(attempt *QuizAttempt) error
+	GetQuizAttemptByID(id uint) (QuizAttempt, error)
+	GetLatestQuizAttempt(quizID, userID uint) (QuizAttempt, error)
+	GetQuizAttemptsByUser(quizID, userID uint) ([]QuizAttempt, error)
+	UpdateQuizAttempt(attempt *QuizAttempt) error
 }
 
 type QuizUsecase interface {
@@ -104,7 +104,7 @@ type QuizUsecase interface {
 	SubmitAttempt(attemptID uint, answers datatypes.JSON) (*QuizAttempt, error)
 }
 
-type QuestionUsecase interface {
+type QuizQuestionUsecase interface {
 	CreateQuestion(quizID uint, qType QuestionType, text string, options, correctAnswer datatypes.JSON, points int, explanation string) (*Question, error)
 	GetQuestionsByQuizID(quizID uint, israndomized bool) ([]Question, error)
 	GetQuestionByID(id uint) (Question, error)

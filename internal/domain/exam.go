@@ -56,33 +56,47 @@ type ExamAttempt struct {
 
 // --- KONTRAK REPOSITORY ---
 type ExamRepository interface {
-	Create(exam *Exam) error
-	GetByCourseID(courseID uint) ([]Exam, error)
-	GetByID(id uint) (Exam, error)
-	Update(exam *Exam) error
-	Delete(id uint) error
+	CreateExam(exam *Exam) error
+	GetExamsByCourseID(courseID uint) ([]Exam, error)
+	GetExamByID(id uint) (Exam, error)
+	UpdateExam(exam *Exam) error
+	DeleteExam(id uint) error
 }
 
 type ExamQuestionRepository interface {
-	Create(question *ExamQuestion) error
-	GetByExamID(examID uint) ([]ExamQuestion, error)
+	CreateExamQuestion(question *ExamQuestion) error
+	GetExamQuestionsByExamID(examID uint) ([]ExamQuestion, error)
+	GetExamQuestionByID(id uint) (ExamQuestion, error)
+	UpdateExamQuestion(exam *ExamQuestion) error
+	DeleteExamQuestion(id uint) error
 }
 
 type ExamAttemptRepository interface {
-	Create(attempt *ExamAttempt) error
-	GetByID(id uint) (ExamAttempt, error)
-	GetByExamID(examID uint) ([]ExamAttempt, error)
-	GetLatestAttempt(examID, userID uint) (ExamAttempt, error)
-	Update(attempt *ExamAttempt) error
+	CreateExamAttempt(attempt *ExamAttempt) error
+	GetExamAttemptByID(id uint) (ExamAttempt, error)
+	GetExamAttemptsByExamID(examID uint) ([]ExamAttempt, error)
+	GetLatestExamAttempt(examID, userID uint) (ExamAttempt, error)
+	UpdateExamAttempt(attempt *ExamAttempt) error
 }
 
 // --- KONTRAK USECASE ---
 type ExamUsecase interface {
 	CreateExam(courseID uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
 	GenerateCBTToken(examID uint) (string, error)
-	GenerateQuestionsWithAI(examID uint, topic, qType string, count int) ([]ExamQuestion, error)
+	GenerateExamQuestionsWithAI(examID uint, topic, qType string, count int) ([]ExamQuestion, error)
+	GetExamsByCourseID(courseID uint) ([]Exam, error)
+	GetExamByID(id uint) (Exam, error)
+	UpdateExam(id uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
 
 	// CBT Execution
-	StartAttempt(examID, userID uint, inputToken string) (*ExamAttempt, []ExamQuestion, error)
-	SubmitAttempt(attemptID uint, answers datatypes.JSON) (*ExamAttempt, error)
+	StartExamAttempt(examID, userID uint, inputToken string) (*ExamAttempt, []ExamQuestion, error)
+	SubmitExamAttempt(examAttemptID uint, answers datatypes.JSON) (*ExamAttempt, error)
+}
+
+type ExamQuestionUsecase interface {
+	CreateExamQuestion(examID uint, qType QuestionType, text string, options, correctAnswer datatypes.JSON, points int, explanation string) (*ExamQuestion, error)
+	GetExamQuestionsByExamID(examID uint, israndomized bool) ([]ExamQuestion, error)
+	GetExamQuestionByID(id uint) (ExamQuestion, error)
+	UpdateExamQuestion(id uint, qType QuestionType, text string, options, correctAnswer datatypes.JSON, points int, explanation string) (*ExamQuestion, error)
+	DeleteExamQuestion(id uint) error
 }
