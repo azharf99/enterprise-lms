@@ -26,11 +26,6 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRe
 		mgmt.GET("", handler.GetExamsByCourseID)
 	}
 
-	examAuth := r.Group("/api/exams/:exam_id")
-	examAuth.Use(middleware.RequireAuth(), middleware.RequireExamAccess(er))
-	{
-		examAuth.POST("/attempts", handler.StartAttempt)
-	}
 	examMgmt := r.Group("/api/exams")
 	examMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
