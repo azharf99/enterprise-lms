@@ -17,7 +17,7 @@ func GenerateQuizJSON(topic, qType string, count int) (string, error) {
 	}
 
 	// Endpoint resmi Gemini 1.5 Flash
-	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=%s", apiKey)
+	url := fmt.Sprintf("https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=%s", apiKey)
 
 	prompt := fmt.Sprintf(`Buatkan %d soal dengan tipe %s untuk ujian tingkat menengah atas (SMA) dengan topik: "%s".
 
