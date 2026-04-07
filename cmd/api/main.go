@@ -58,6 +58,7 @@ func main() {
 	protedcted.Use(middleware.RequireAuth())
 	{
 		http.NewCourseHandler(r, courseUsecase, enrollmentRepo)
+		http.NewEnrollmentHandler(r, enrollmentUsecase, enrollmentRepo)
 		http.NewModuleHandler(r, moduleUsecase, enrollmentRepo)
 		http.NewLessonHandler(r, lessonUsecase, enrollmentRepo)
 		http.NewQuizHandler(r, quizUsecase, enrollmentRepo)
@@ -65,7 +66,7 @@ func main() {
 		http.NewAttemptHandler(r, quizUsecase, enrollmentRepo)
 		http.NewExamHandler(r, examUsecase, enrollmentRepo)
 		http.NewExamQuestionHandler(r, examQuestionUsecase, enrollmentRepo)
-		http.NewEnrollmentHandler(r, enrollmentUsecase, enrollmentRepo)
+		http.NewExamAttemptHandler(r, examUsecase, enrollmentRepo)
 		http.NewAnalyticsHandler(r, analyticsUsecase)
 	}
 
