@@ -36,9 +36,16 @@ func NewExamQuestionRepository(db *gorm.DB) domain.ExamQuestionRepository {
 func (r *examQuestionRepository) CreateExamQuestion(q *domain.ExamQuestion) error {
 	return r.db.Create(q).Error
 }
-func (r *examQuestionRepository) GetExamQuestionsByExamID(examID uint) ([]domain.ExamQuestion, error) {
+func (r *examQuestionRepository) GetExamQuestionsByExamID(examID uint, isRandomized bool) ([]domain.ExamQuestion, error) {
 	var questions []domain.ExamQuestion
-	err := r.db.Where("exam_id = ?", examID).Order("id asc").Find(&questions).Error
+	db := r.db.Where("exam_id = ?", examID)
+	if isRandomized {
+		db = db.Order("RANDOM()")
+	} else {
+		db = db.Order("id asc")
+	}
+
+	err := db.Find(&questions).Error
 	return questions, err
 }
 

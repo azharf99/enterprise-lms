@@ -12,7 +12,6 @@ import (
 
 type AttemptHandler struct {
 	quizUsecase domain.QuizUsecase
-	examUsecase domain.ExamUsecase
 }
 
 func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase, er domain.EnrollmentRepository) {
@@ -25,7 +24,7 @@ func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase, er domain.Enrollmen
 		examProtected1.POST("/quizzes/:quiz_id/attempts", handler.StartAttempt)
 	}
 	examProtected2 := r.Group("/api")
-	examProtected2.Use(middleware.RequireAuth(), middleware.RequireExamAttemptAccess(er))
+	examProtected2.Use(middleware.RequireAuth(), middleware.RequireQuizAttemptAccess(er))
 	{
 		// Mengirimkan jawaban kuis
 		examProtected2.POST("/attempts/:attempt_id/submit", handler.SubmitAttempt)

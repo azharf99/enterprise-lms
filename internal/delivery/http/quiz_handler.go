@@ -7,18 +7,15 @@ import (
 	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
 	"github.com/gin-gonic/gin"
-	"gorm.io/datatypes"
 )
 
 type QuizHandler struct {
-	quizUsecase     domain.QuizUsecase
-	questionUsecase domain.QuizQuestionUsecase
+	quizUsecase domain.QuizUsecase
 }
 
-func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuizQuestionUsecase, er domain.EnrollmentRepository) {
+func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, er domain.EnrollmentRepository) {
 	handler := &QuizHandler{
-		quizUsecase:     qu,
-		questionUsecase: qnu,
+		quizUsecase: qu,
 	}
 
 	quizProtected := r.Group("/api")
@@ -29,14 +26,7 @@ func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuizQuestio
 	quizProtected2 := r.Group("/api")
 	quizProtected2.Use(middleware.RequireAuth(), middleware.RequireQuizAccess(er))
 	{
-		quizProtected2.GET("/quizzes/:quiz_id/questions", handler.GetQuestionsByQuiz)
-		quizProtected.GET("/quizzes/:quiz_id", handler.GetQuizByID)
-	}
-
-	quizProtected3 := r.Group("/api")
-	quizProtected3.Use(middleware.RequireAuth(), middleware.RequireQuestionAccess(er))
-	{
-		quizProtected3.GET("/questions/:question_id", handler.GetQuestionByID)
+		quizProtected2.GET("/quizzes/:quiz_id", handler.GetQuizByID)
 	}
 
 	quizPrivate := r.Group("/api")
@@ -46,11 +36,8 @@ func NewQuizHandler(r *gin.Engine, qu domain.QuizUsecase, qnu domain.QuizQuestio
 		quizPrivate.POST("/modules/:module_id/quizzes", handler.CreateQuiz)
 		quizPrivate.PUT("/quizzes/:quiz_id", handler.UpdateQuiz)
 		quizPrivate.DELETE("/quizzes/:quiz_id", handler.DeleteQuiz)
-
 		// Question Management (Nested under Quiz)
-		quizPrivate.POST("/quizzes/:quiz_id/questions", handler.CreateQuestion)
-		quizPrivate.PUT("/questions/:question_id", handler.UpdateQuestion)
-		quizPrivate.DELETE("/questions/:question_id", handler.DeleteQuestion)
+		quizPrivate.POST("/quizzes/:quiz_id/questions/generate", handler.GenerateQuizQuestionsWithAI)
 	}
 }
 
@@ -144,93 +131,49 @@ func (h *QuizHandler) DeleteQuiz(c *gin.Context) {
 
 }
 
-// ... (UpdateQuiz & DeleteQuiz mengikuti pola yang sama) ...
-
-// --- Question Handlers ---
-
-type QuestionRequest struct {
-	Type          domain.QuestionType `json:"type" binding:"required"`
-	Text          string              `json:"text" binding:"required"`
-	Options       datatypes.JSON      `json:"options"`
-	CorrectAnswer datatypes.JSON      `json:"correct_answer" binding:"required"`
-	Points        int                 `json:"points"`
-	Explanation   string              `json:"explanation"`
-}
-
-func (h *QuizHandler) CreateQuestion(c *gin.Context) {
+func (h *QuizHandler) GenerateQuizQuestionsWithAI(c *gin.Context) {
 	quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
-	var req QuestionRequest
+
+	var req AIGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	question, err := h.questionUsecase.CreateQuestion(uint(quizID), req.Type, req.Text, req.Options, req.CorrectAnswer, req.Points, req.Explanation)
+	questions, err := h.quizUsecase.GenerateQuizQuestionsWithAI(uint(quizID), req.Topic, req.QType, req.Count)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	c.JSON(http.StatusCreated, gin.H{"data": question})
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Berhasil menggenerate soal menggunakan AI",
+		"data":    questions,
+	})
 }
 
-func (h *QuizHandler) GetQuestionsByQuiz(c *gin.Context) {
+func (h *QuizHandler) StartAttempt(c *gin.Context) {
 	quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
-	questions, err := h.questionUsecase.GetQuestionsByQuizID(uint(quizID), true) // true untuk randomize
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"data": questions})
-}
+	userIDVal, _ := c.Get("user_id") // Pastikan route ini diproteksi AuthMiddleware
+	userID := uint(userIDVal.(float64))
 
-func (h *QuizHandler) GetQuestionByID(c *gin.Context) {
-	qID, _ := strconv.ParseUint(c.Param("question_id"), 10, 32)
-	question, err := h.questionUsecase.GetQuestionByID(uint(qID))
-	if err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Soal tidak ditemukan"})
-		return
+	var req struct {
+		Token string `json:"token" binding:"required"`
 	}
-	c.JSON(http.StatusOK, gin.H{"data": question})
-}
-
-func (h *QuizHandler) UpdateQuestion(c *gin.Context) {
-	idParam := c.Param("question_id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
-		return
-	}
-
-	var req QuestionRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Format request tidak valid"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token Ujian (CBT Token) diperlukan"})
 		return
 	}
 
-	question, err := h.questionUsecase.UpdateQuestion(uint(id), req.Type, req.Text, req.Options, req.CorrectAnswer, req.Points, req.Explanation)
+	attempt, questions, err := h.quizUsecase.StartAttempt(uint(quizID), userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": "Soal berhasil diperbarui",
-		"data":    question,
+		"message":   "Ujian dimulai",
+		"attempt":   attempt,
+		"questions": questions,
 	})
-}
-
-func (h *QuizHandler) DeleteQuestion(c *gin.Context) {
-	idParam := c.Param("question_id")
-	id, err := strconv.ParseUint(idParam, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
-		return
-	}
-
-	if err := h.questionUsecase.DeleteQuestion(uint(id)); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Soal berhasil dihapus"})
 }

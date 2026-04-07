@@ -11,14 +11,12 @@ import (
 )
 
 type ExamHandler struct {
-	examUsecase         domain.ExamUsecase
-	examQuestionUsecase domain.ExamQuestionUsecase
+	examUsecase domain.ExamUsecase
 }
 
-func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, eq domain.ExamQuestionUsecase, er domain.EnrollmentRepository) {
+func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRepository) {
 	handler := &ExamHandler{
-		examUsecase:         eu,
-		examQuestionUsecase: eq,
+		examUsecase: eu,
 	}
 	// Endpoint Manajemen Ujian (Admin/Tutor)
 	mgmt := r.Group("/api/courses/:course_id/exams")
@@ -213,5 +211,3 @@ func (h *ExamHandler) StartAttempt(c *gin.Context) {
 		"questions": questions,
 	})
 }
-
-// ... (Tambahkan fungsi pendukung lainnya sesuai kebutuhan) ...

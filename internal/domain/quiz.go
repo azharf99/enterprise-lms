@@ -37,21 +37,17 @@ const (
 
 // Question merepresentasikan butir soal
 type Question struct {
-	ID     uint         `gorm:"primaryKey" json:"id"`
-	QuizID uint         `gorm:"not null" json:"quiz_id"`
-	Type   QuestionType `gorm:"type:varchar(50);not null" json:"type"`
-	Text   string       `gorm:"type:text;not null" json:"text"` // Teks soal
-
-	// Gunakan datatypes.JSON agar GORM otomatis mengubah struct Golang menjadi JSONB di PostgreSQL
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	QuizID        uint           `gorm:"not null" json:"quiz_id"`
+	Type          QuestionType   `gorm:"type:varchar(50);not null" json:"type"`
+	Text          string         `gorm:"type:text;not null" json:"text"` // Teks soal
 	Options       datatypes.JSON `gorm:"type:jsonb" json:"options"`
 	CorrectAnswer datatypes.JSON `gorm:"type:jsonb" json:"correct_answer"`
-
-	Points      int    `gorm:"not null;default:10" json:"points"` // Bobot nilai per soal
-	Explanation string `gorm:"type:text" json:"explanation"`      // Pembahasan setelah kuis selesai
-
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	Points        int            `gorm:"not null;default:10" json:"points"` // Bobot nilai per soal
+	Explanation   string         `gorm:"type:text" json:"explanation"`      // Pembahasan setelah kuis selesai
+	CreatedAt     time.Time      `json:"created_at"`
+	UpdatedAt     time.Time      `json:"updated_at"`
+	DeletedAt     gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // QuizAttempt mencatat setiap kali siswa mengerjakan kuis
@@ -96,6 +92,7 @@ type QuizAttemptRepository interface {
 
 type QuizUsecase interface {
 	CreateQuiz(moduleID uint, title, description string, timeLimit, passingScore int, isRandomized bool, maxAttempts int) (*Quiz, error)
+	GenerateQuizQuestionsWithAI(quizID uint, topic, qType string, count int) ([]Question, error)
 	GetQuizzesByModule(moduleID uint) ([]Quiz, error)
 	GetQuizByID(id uint) (Quiz, error)
 	UpdateQuiz(id uint, title, description string, timeLimit, passingScore int) (*Quiz, error)

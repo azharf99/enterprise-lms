@@ -14,14 +14,16 @@ import (
 )
 
 type quizUsecase struct {
-	quizRepo    domain.QuizRepository
-	attemptRepo domain.QuizAttemptRepository
+	quizRepo     domain.QuizRepository
+	attemptRepo  domain.QuizAttemptRepository
+	questionRepo domain.QuizQuestionRepository
 }
 
-func NewQuizUsecase(qr domain.QuizRepository, ar domain.QuizAttemptRepository) domain.QuizUsecase {
+func NewQuizUsecase(qr domain.QuizRepository, ar domain.QuizAttemptRepository, qtr domain.QuizQuestionRepository) domain.QuizUsecase {
 	return &quizUsecase{
-		quizRepo:    qr,
-		attemptRepo: ar,
+		quizRepo:     qr,
+		attemptRepo:  ar,
+		questionRepo: qtr,
 	}
 }
 
@@ -39,6 +41,47 @@ func (u *quizUsecase) CreateQuiz(moduleID uint, title, description string, timeL
 		return nil, err
 	}
 	return quiz, nil
+}
+
+func (u *quizUsecase) GenerateQuizQuestionsWithAI(quizID uint, qType, topic string, count int) ([]domain.Question, error) {
+	jsonResponse, err := utils.GenerateQuizJSON(topic, qType, count) // Memakai fungsi AI di pkg/utils/gemini.go
+	if err != nil {
+		return nil, errors.New("gagal generate soal: " + err.Error())
+	}
+
+	type AIQuestion struct {
+		Type          string      `json:"type"`
+		Text          string      `json:"text"`
+		Options       interface{} `json:"options"`
+		CorrectAnswer interface{} `json:"correct_answer"`
+		Points        int         `json:"points"`
+		Explanation   string      `json:"explanation"`
+	}
+
+	var aiQuestions []AIQuestion
+	if err := json.Unmarshal([]byte(jsonResponse), &aiQuestions); err != nil {
+		return nil, errors.New("format AI tidak valid")
+	}
+
+	var saved []domain.Question
+	for _, aiQ := range aiQuestions {
+		optJSON, _ := json.Marshal(aiQ.Options)
+		ansJSON, _ := json.Marshal(aiQ.CorrectAnswer)
+
+		newQ := &domain.Question{
+			QuizID:        quizID,
+			Type:          domain.QuestionType(aiQ.Type),
+			Text:          aiQ.Text,
+			Options:       datatypes.JSON(optJSON),
+			CorrectAnswer: datatypes.JSON(ansJSON),
+			Points:        aiQ.Points,
+			Explanation:   aiQ.Explanation,
+		}
+		if u.questionRepo.CreateQuizQuestion(newQ) == nil {
+			saved = append(saved, *newQ)
+		}
+	}
+	return saved, nil
 }
 
 func (u *quizUsecase) GetQuizzesByModule(moduleID uint) ([]domain.Quiz, error) {

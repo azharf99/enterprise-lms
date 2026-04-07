@@ -9,26 +9,21 @@ import (
 
 // Exam merepresentasikan Ujian Besar (CBT) di tingkat Mata Pelajaran
 type Exam struct {
-	ID          uint   `gorm:"primaryKey" json:"id"`
-	CourseID    uint   `gorm:"not null" json:"course_id"` // Hierarkinya langsung ke Course
-	Title       string `gorm:"type:varchar(200);not null" json:"title"`
-	ExamType    string `gorm:"type:varchar(50);not null" json:"exam_type"` // "PTS", "PAS", "TryOut"
-	Description string `gorm:"type:text" json:"description"`
-
-	// Konfigurasi CBT
-	TimeLimit    int    `gorm:"not null;default:0" json:"time_limit"`
-	PassingScore int    `gorm:"not null;default:70" json:"passing_score"`
-	CBTToken     string `gorm:"type:varchar(10)" json:"cbt_token"`
-	IsRandomized bool   `gorm:"default:true" json:"is_randomized"`
-
-	// Jadwal Pelaksanaan CBT (Siswa hanya bisa akses di rentang waktu ini)
-	StartTime *time.Time `json:"start_time"`
-	EndTime   *time.Time `json:"end_time"`
-
-	Questions []ExamQuestion `gorm:"foreignKey:ExamID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"questions,omitempty"`
-	CreatedAt time.Time      `json:"created_at"`
-	UpdatedAt time.Time      `json:"updated_at"`
-	DeletedAt gorm.DeletedAt `gorm:"index" json:"-"`
+	ID           uint           `gorm:"primaryKey" json:"id"`
+	CourseID     uint           `gorm:"not null" json:"course_id"` // Hierarkinya langsung ke Course
+	Title        string         `gorm:"type:varchar(200);not null" json:"title"`
+	ExamType     string         `gorm:"type:varchar(50);not null" json:"exam_type"` // "PTS", "PAS", "TryOut"
+	Description  string         `gorm:"type:text" json:"description"`
+	TimeLimit    int            `gorm:"not null;default:0" json:"time_limit"`
+	PassingScore int            `gorm:"not null;default:70" json:"passing_score"`
+	CBTToken     string         `gorm:"type:varchar(10)" json:"cbt_token"`
+	IsRandomized bool           `gorm:"default:true" json:"is_randomized"`
+	StartTime    *time.Time     `json:"start_time"`
+	EndTime      *time.Time     `json:"end_time"`
+	Questions    []ExamQuestion `gorm:"foreignKey:ExamID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"questions,omitempty"`
+	CreatedAt    time.Time      `json:"created_at"`
+	UpdatedAt    time.Time      `json:"updated_at"`
+	DeletedAt    gorm.DeletedAt `gorm:"index" json:"-"`
 }
 
 // ExamQuestion merepresentasikan butir soal khusus ujian
@@ -65,7 +60,7 @@ type ExamRepository interface {
 
 type ExamQuestionRepository interface {
 	CreateExamQuestion(question *ExamQuestion) error
-	GetExamQuestionsByExamID(examID uint) ([]ExamQuestion, error)
+	GetExamQuestionsByExamID(examID uint, isRandomized bool) ([]ExamQuestion, error)
 	GetExamQuestionByID(id uint) (ExamQuestion, error)
 	UpdateExamQuestion(exam *ExamQuestion) error
 	DeleteExamQuestion(id uint) error

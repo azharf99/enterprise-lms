@@ -119,3 +119,16 @@ func (r *enrollmentRepositoy) CheckExamAttemptAccess(attemptID, userID uint) (bo
 
 	return count > 0, err
 }
+
+// CheckQuizAttemptAccess mengecek akses upaya kuis langsung ke tabel enrollments
+func (r *enrollmentRepositoy) CheckQuizAttemptAccess(attemptID, userID uint) (bool, error) {
+	var count int64
+	// SQL Setara: SELECT count(*) FROM enrollments e JOIN quizzes q ON e.course_id = q.course_id WHERE q.id = ? AND e.user_id = ?
+	err := r.db.Table("enrollments").
+		Joins("JOIN quizzes ON enrollments.course_id = quizzes.course_id").
+		Joins("JOIN quiz_attempts ON quizzes.id = quiz_attempts.quiz_id").
+		Where("quiz_attempts.id = ? AND enrollments.user_id = ?", attemptID, userID).
+		Count(&count).Error
+
+	return count > 0, err
+}

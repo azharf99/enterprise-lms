@@ -4,28 +4,43 @@ import (
 	"fmt"
 
 	"github.com/azharf99/enterprise-lms/internal/domain"
-	"golang.org/x/crypto/bcrypt"
+	"github.com/azharf99/enterprise-lms/pkg/utils"
 	"gorm.io/gorm"
 )
 
 func SeedAdmin(db *gorm.DB) {
 	var count int64
+
+	// 1. Cek apakah sudah ada pengguna dengan Email "admin@gmail.com" di database
 	db.Model(&domain.User{}).Where("email = ?", "admin@gmail.com").Count(&count)
 
-	hash, _ := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
+	// 2. Jika belum ada Admin sama sekali, buat satu!
 	if count == 0 {
-		adminUser := domain.User{
+		fmt.Println("[Seeder] Mendeteksi database baru. Menyiapkan akun Super Admin...")
+
+		// Hash password default (misal: "admin123")
+		hashedPassword, err := utils.HashPassword("admin123")
+		if err != nil {
+			fmt.Println("❌ [Seeder] Gagal hash password Super Admin:", err)
+		}
+
+		// Buat model Super Admin
+		admin := domain.User{
 			Name:     "Admin Ganteng",
 			Email:    "admin@gmail.com",
-			Password: string(hash),
+			Password: string(hashedPassword),
 			Role:     "Admin",
 		}
-		if err := db.Create(&adminUser).Error; err != nil {
-			fmt.Println("❌ Gagal membuat akun admin:", err)
-		} else {
-			fmt.Println("✅ SEEDER: Akun Admin berhasil dibuat (admin@gmail.com / admin123)!")
+
+		// Simpan ke database
+		if err := db.Create(&admin).Error; err != nil {
+			fmt.Println("❌ [Seeder] Gagal membuat akun Super Admin:", err)
 		}
+
+		fmt.Println("[Seeder] ✅ Berhasil membuat Super Admin! (Email: admin@gmail.com | Pass: admin123)")
 	} else {
-		fmt.Println("✅ SEEDER: Akun Admin sudah eksis, melewati proses seeding.")
+		// Jika sudah ada, abaikan saja agar tidak terjadi duplikasi saat server restart
+		fmt.Println("[Seeder] ℹ️ Akun Super Admin sudah tersedia, melewati proses seeding.")
 	}
+
 }
