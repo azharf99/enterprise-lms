@@ -115,7 +115,7 @@ func (u *quizUsecase) DeleteQuiz(id uint) error {
 func (u *quizUsecase) StartAttempt(quizID, userID uint, status string) (*domain.AttemptResponse, error) {
 	// Ambil data kuis untuk mengecek batas max_attempt (misal default 1)
 	quiz, _ := u.quizRepo.GetQuizByID(quizID)
-	
+
 	// 1. CEK ATTEMPT YANG SEDANG BERJALAN (RESUME)
 	activeAttempt, err := u.attemptRepo.GetLatestQuizAttempt(quizID, userID, status)
 	if err == nil && activeAttempt.ID != 0 {
@@ -135,7 +135,6 @@ func (u *quizUsecase) StartAttempt(quizID, userID uint, status string) (*domain.
 	// 2. JIKA TIDAK ADA YANG AKTIF, CEK KUOTA MAKSIMAL ATTEMPT
 	completedCount := u.attemptRepo.CheckCompletedQuizAttempt(quizID, userID, "completed")
 
-
 	// Jika di tabel quiz tidak ada kolom max_attempts, asumsikan batasnya 1
 	// Anda bisa menyesuaikan ini jika ada kolom MaxAttempts di database Anda
 	if completedCount >= int64(quiz.MaxAttempts) {
@@ -144,9 +143,9 @@ func (u *quizUsecase) StartAttempt(quizID, userID uint, status string) (*domain.
 
 	// 3. BUAT ATTEMPT BARU
 	newAttempt := domain.QuizAttempt{
-		QuizID: quizID,
-		UserID: userID,
-		Status: "in_progress",
+		QuizID:    quizID,
+		UserID:    userID,
+		Status:    "in_progress",
 		StartedAt: time.Now(),
 	}
 
@@ -253,6 +252,7 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	attempt.Score = finalScore
 	attempt.Answers = userAnswers
 	attempt.AttemptNumber += 1
+	attempt.Status = "completed"
 	attempt.Passed = finalScore >= float64(quiz.PassingScore)
 
 	if err := u.attemptRepo.UpdateQuizAttempt(&attempt); err != nil {
