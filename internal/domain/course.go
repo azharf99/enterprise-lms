@@ -36,6 +36,7 @@ const (
 	LessonTypeText  LessonType = "Text"
 	LessonTypeVideo LessonType = "Video"
 	LessonTypeAudio LessonType = "Audio"
+	LessonTypeImage LessonType = "Image"
 	LessonTypePDF   LessonType = "PDF"
 )
 
@@ -44,7 +45,7 @@ type Lesson struct {
 	ID        uint           `gorm:"primaryKey" json:"id"`
 	ModuleID  uint           `gorm:"not null" json:"module_id"`
 	Title     string         `gorm:"type:varchar(200);not null" json:"title"`
-	Type      LessonType     `gorm:"type:varchar(50);not null;default:'Text'" json:"type"`
+	Type      LessonType     `gorm:"type:varchar(50);not null;default:'Text'" json:"lesson_type"`
 	Content   string         `gorm:"type:text;not null" json:"content"`
 	Sequence  int            `gorm:"not null;default:1" json:"sequence"`
 	CreatedAt time.Time      `json:"created_at"`

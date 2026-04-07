@@ -41,7 +41,7 @@ func NewLessonHandler(r *gin.Engine, mu domain.LessonUsecase, er domain.Enrollme
 
 type LessonRequest struct {
 	Title      string `json:"title" binding:"required"`
-	LessonType string `json:"lessonType" binding:"required"`
+	LessonType string `json:"lesson_type" binding:"required"`
 	Content    string `json:"content" binding:"required"`
 	Sequence   int    `json:"sequence"`
 }
