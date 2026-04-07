@@ -35,6 +35,13 @@ const (
 	TypeEssay          QuestionType = "Essay"          // Uraian
 )
 
+type StatusType string
+
+const (
+	StatusInProgress StatusType = "in_progress"
+	StatusCompleted  StatusType = "completed"
+)
+
 // Question merepresentasikan butir soal
 type Question struct {
 	ID            uint           `gorm:"primaryKey" json:"id"`
@@ -52,18 +59,40 @@ type Question struct {
 
 // QuizAttempt mencatat setiap kali siswa mengerjakan kuis
 type QuizAttempt struct {
-	ID            uint    `gorm:"primaryKey" json:"id"`
-	QuizID        uint    `gorm:"not null" json:"quiz_id"`
-	UserID        uint    `gorm:"not null" json:"user_id"`
-	AttemptNumber int     `gorm:"not null" json:"attempt_number"`
-	Score         float64 `gorm:"type:decimal(5,2);default:0" json:"score"`
+	ID            uint           `gorm:"primaryKey" json:"id"`
+	QuizID        uint           `gorm:"not null" json:"quiz_id"`
+	UserID        uint           `gorm:"not null" json:"user_id"`
+	AttemptNumber int            `gorm:"not null" json:"attempt_number"`
+	Score         float64        `gorm:"type:decimal(5,2);default:0" json:"score"`
+	Answers       datatypes.JSON `gorm:"type:jsonb" json:"answers"`
+	Status        StatusType     `gorm:"type:varchar(50);not null" json:"status"`
+	Passed        bool           `json:"passed"`
+	StartedAt     time.Time      `json:"started_at"`
+	CompletedAt   *time.Time     `json:"completed_at"` // Nilai null jika belum selesai
+}
 
-	// Menyimpan jawaban siswa dalam bentuk JSON untuk audit/review
-	// Format: [{"question_id": 1, "answer": "A"}, ...]
-	Answers datatypes.JSON `gorm:"type:jsonb" json:"answers"`
+type QuizAttemptDTO struct {
+	ID            uint           `json:"id"`
+	QuizID        uint           `json:"quiz_id"`
+	UserID        uint           `json:"user_id"`
+	AttemptNumber int            `json:"attempt_number"`
+	Score         float64        `json:"score"`
+	Answers       datatypes.JSON `json:"answers"`
+	Status        StatusType     `json:"status"`
+	Passed        bool           `json:"passed"`
+}
 
-	StartedAt   time.Time  `json:"started_at"`
-	CompletedAt *time.Time `json:"completed_at"` // Nilai null jika belum selesai
+type QuestionAttemptDTO struct {
+	ID      uint           `json:"id"`
+	Type    QuestionType   `json:"type"`
+	Text    string         `json:"text"`
+	Options datatypes.JSON `json:"options"`
+	Points  int            `json:"points"`
+}
+
+type AttemptResponse struct {
+	Attempt   QuizAttempt          `json:"attempt"`
+	Questions []QuestionAttemptDTO `json:"questions"`
 }
 
 type QuizRepository interface {
@@ -85,8 +114,9 @@ type QuizQuestionRepository interface {
 type QuizAttemptRepository interface {
 	CreateQuizAttempt(attempt *QuizAttempt) error
 	GetQuizAttemptByID(id uint) (QuizAttempt, error)
-	GetLatestQuizAttempt(quizID, userID uint) (QuizAttempt, error)
+	GetLatestQuizAttempt(quizID, userID uint, status string) (QuizAttempt, error)
 	GetQuizAttemptsByUser(quizID, userID uint) ([]QuizAttempt, error)
+	CheckCompletedQuizAttempt(quizID, userID uint, status string) int64
 	UpdateQuizAttempt(attempt *QuizAttempt) error
 }
 
@@ -97,7 +127,7 @@ type QuizUsecase interface {
 	GetQuizByID(id uint) (Quiz, error)
 	UpdateQuiz(id uint, title, description string, timeLimit, passingScore int) (*Quiz, error)
 	DeleteQuiz(id uint) error
-	StartAttempt(quizID, userID uint) (*QuizAttempt, []Question, error)
+	StartAttempt(quizID, userID uint, status string) (*AttemptResponse, error)
 	SubmitAttempt(attemptID uint, answers datatypes.JSON) (*QuizAttempt, error)
 }
 

@@ -120,14 +120,19 @@ func (r *enrollmentRepositoy) CheckExamAttemptAccess(attemptID, userID uint) (bo
 	return count > 0, err
 }
 
-// CheckQuizAttemptAccess mengecek akses upaya kuis langsung ke tabel enrollments
+// CheckQuizAttemptAccess mengecek apakah user berhak mensubmit attempt ini
 func (r *enrollmentRepositoy) CheckQuizAttemptAccess(attemptID, userID uint) (bool, error) {
 	var count int64
-	// SQL Setara: SELECT count(*) FROM enrollments e JOIN quizzes q ON e.course_id = q.course_id WHERE q.id = ? AND e.user_id = ?
-	err := r.db.Table("enrollments").
-		Joins("JOIN quizzes ON enrollments.course_id = quizzes.course_id").
-		Joins("JOIN quiz_attempts ON quizzes.id = quiz_attempts.quiz_id").
-		Where("quiz_attempts.id = ? AND enrollments.user_id = ?", attemptID, userID).
+
+	// Kita melakukan 2 lapis keamanan sekaligus dalam 1 Query:
+	// 1. Memastikan bahwa Attempt ini memang milik User tersebut (attempts.user_id = userID)
+	// 2. Melacak mundur (Attempt -> Quiz -> Module) untuk memastikan User masih berstatus Enrolled
+
+	err := r.db.Table("quiz_attempts").
+		Joins("JOIN quizzes ON quiz_attempts.quiz_id = quizzes.id").
+		Joins("JOIN modules ON quizzes.module_id = modules.id").
+		Joins("JOIN enrollments ON modules.course_id = enrollments.course_id").
+		Where("quiz_attempts.id = ? AND quiz_attempts.user_id = ? AND enrollments.user_id = ?", attemptID, userID, userID).
 		Count(&count).Error
 
 	return count > 0, err

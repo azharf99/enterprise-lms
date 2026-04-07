@@ -34,7 +34,6 @@ func NewAttemptHandler(r *gin.Engine, qu domain.QuizUsecase, er domain.Enrollmen
 func (h *AttemptHandler) StartAttempt(c *gin.Context) {
 	quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
 
-	// Kita ambil userID dari JWT middleware (Fase 1)
 	// c.Get("user_id") mengembalikan interface{}, kita konversi ke uint
 	userIDVal, exists := c.Get("user_id")
 	if !exists {
@@ -43,7 +42,7 @@ func (h *AttemptHandler) StartAttempt(c *gin.Context) {
 	}
 	userID := uint(userIDVal.(float64)) // JWT parsing biasanya menghasilkan float64
 
-	attempt, questions, err := h.quizUsecase.StartAttempt(uint(quizID), userID)
+	response, err := h.quizUsecase.StartAttempt(uint(quizID), userID, "in_progress") // Kita set status awal "in_progress"
 	if err != nil {
 		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
 		return
@@ -51,8 +50,8 @@ func (h *AttemptHandler) StartAttempt(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":   "Kuis dimulai",
-		"attempt":   attempt,
-		"questions": questions, // Soal sudah diacak jika setting IsRandomized=true
+		"attempt":   response.Attempt,
+		"questions": response.Questions,
 	})
 }
 
@@ -80,6 +79,7 @@ func (h *AttemptHandler) SubmitAttempt(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Kuis berhasil dikirim",
 		"score":   result.Score,
+		"passed":  result.Passed,
 		"status":  "Completed",
 	})
 }

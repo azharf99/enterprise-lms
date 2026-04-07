@@ -35,7 +35,7 @@ func NewModuleHandler(r *gin.Engine, mu domain.ModuleUsecase, er domain.Enrollme
 	modulePrivate := r.Group("/api")
 	modulePrivate.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
-		modulePrivate.POST("/modules", handler.Create)
+		modulePrivate.POST("/courses/:course_id/modules", handler.Create)
 		modulePrivate.PUT("/modules/:module_id", handler.Update)
 		modulePrivate.DELETE("/modules/:module_id", handler.Delete)
 

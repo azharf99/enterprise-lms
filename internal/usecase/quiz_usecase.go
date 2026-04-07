@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
 	"time"
 
 	"github.com/azharf99/enterprise-lms/internal/domain"
@@ -113,38 +112,70 @@ func (u *quizUsecase) DeleteQuiz(id uint) error {
 	return u.quizRepo.DeleteQuiz(id)
 }
 
-func (u *quizUsecase) StartAttempt(quizID, userID uint) (*domain.QuizAttempt, []domain.Question, error) {
-	quiz, err := u.quizRepo.GetQuizByID(quizID)
-	if err != nil {
-		return nil, nil, errors.New("kuis tidak ditemukan")
+func (u *quizUsecase) StartAttempt(quizID, userID uint, status string) (*domain.AttemptResponse, error) {
+	// Ambil data kuis untuk mengecek batas max_attempt (misal default 1)
+	quiz, _ := u.quizRepo.GetQuizByID(quizID)
+	
+	// 1. CEK ATTEMPT YANG SEDANG BERJALAN (RESUME)
+	activeAttempt, err := u.attemptRepo.GetLatestQuizAttempt(quizID, userID, status)
+	if err == nil && activeAttempt.ID != 0 {
+		// Ditemukan Attempt yang masih berjalan!
+		// Langsung ambilkan daftar soal dan kembalikan (tanpa menambah kuota attempt)
+		questions, _ := u.questionRepo.GetQuizQuestionsByQuizID(uint(quizID), quiz.IsRandomized)
+
+		// Jangan lupa filter kunci jawaban agar tidak bocor ke siswa!
+		filteredQuestions := filterAnswersOut(questions)
+
+		return &domain.AttemptResponse{
+			Attempt:   activeAttempt,
+			Questions: filteredQuestions,
+		}, nil
 	}
 
-	attempts, _ := u.attemptRepo.GetQuizAttemptsByUser(quizID, userID)
-	if quiz.MaxAttempts > 0 && len(attempts) >= quiz.MaxAttempts {
-		return nil, nil, errors.New("batas maksimal percobaan kuis telah tercapai")
+	// 2. JIKA TIDAK ADA YANG AKTIF, CEK KUOTA MAKSIMAL ATTEMPT
+	completedCount := u.attemptRepo.CheckCompletedQuizAttempt(quizID, userID, "completed")
+
+
+	// Jika di tabel quiz tidak ada kolom max_attempts, asumsikan batasnya 1
+	// Anda bisa menyesuaikan ini jika ada kolom MaxAttempts di database Anda
+	if completedCount >= int64(quiz.MaxAttempts) {
+		return nil, errors.New("batas maksimal percobaan kuis telah tercapai")
 	}
 
-	attempt := &domain.QuizAttempt{
-		QuizID:        quizID,
-		UserID:        userID,
-		AttemptNumber: len(attempts) + 1,
-		StartedAt:     time.Now(),
+	// 3. BUAT ATTEMPT BARU
+	newAttempt := domain.QuizAttempt{
+		QuizID: quizID,
+		UserID: userID,
+		Status: "in_progress",
+		StartedAt: time.Now(),
 	}
 
-	if err := u.attemptRepo.CreateQuizAttempt(attempt); err != nil {
-		return nil, nil, err
+	if err := u.attemptRepo.CreateQuizAttempt(&newAttempt); err != nil {
+		return nil, errors.New("gagal memulai kuis baru")
 	}
 
-	questions := quiz.Questions
-	if quiz.IsRandomized {
-		// Mengacak soal di level aplikasi (Golang) menggunakan Fisher-Yates shuffle
-		rand.New(rand.NewSource(time.Now().UnixNano()))
-		rand.Shuffle(len(questions), func(i, j int) {
-			questions[i], questions[j] = questions[j], questions[i]
+	// Ambil soal untuk attempt baru
+	questions, _ := u.questionRepo.GetQuizQuestionsByQuizID(uint(quizID), quiz.IsRandomized)
+	filteredQuestions := filterAnswersOut(questions)
+
+	return &domain.AttemptResponse{
+		Attempt:   newAttempt,
+		Questions: filteredQuestions,
+	}, nil
+}
+
+func filterAnswersOut(questions []domain.Question) []domain.QuestionAttemptDTO {
+	var filtered []domain.QuestionAttemptDTO
+	for _, q := range questions {
+		filtered = append(filtered, domain.QuestionAttemptDTO{
+			ID:      q.ID,
+			Type:    q.Type,
+			Text:    q.Text,
+			Options: q.Options,
+			Points:  q.Points,
 		})
 	}
-
-	return attempt, questions, nil
+	return filtered
 }
 
 func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) (*domain.QuizAttempt, error) {
@@ -221,6 +252,8 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	attempt.CompletedAt = &now
 	attempt.Score = finalScore
 	attempt.Answers = userAnswers
+	attempt.AttemptNumber += 1
+	attempt.Passed = finalScore >= float64(quiz.PassingScore)
 
 	if err := u.attemptRepo.UpdateQuizAttempt(&attempt); err != nil {
 		return nil, errors.New("gagal menyimpan hasil kuis")

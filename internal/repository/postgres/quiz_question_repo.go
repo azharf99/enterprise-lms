@@ -22,7 +22,6 @@ func (r *questionRepository) GetQuizQuestionsByQuizID(quizID uint, isRandomized 
 	db := r.db.Where("quiz_id = ?", quizID)
 
 	if isRandomized {
-		// PostgreSQL: Menggunakan RANDOM() untuk mengacak urutan baris
 		db = db.Order("RANDOM()")
 	} else {
 		db = db.Order("id asc")

@@ -151,29 +151,3 @@ func (h *QuizHandler) GenerateQuizQuestionsWithAI(c *gin.Context) {
 		"data":    questions,
 	})
 }
-
-func (h *QuizHandler) StartAttempt(c *gin.Context) {
-	quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
-	userIDVal, _ := c.Get("user_id") // Pastikan route ini diproteksi AuthMiddleware
-	userID := uint(userIDVal.(float64))
-
-	var req struct {
-		Token string `json:"token" binding:"required"`
-	}
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Token Ujian (CBT Token) diperlukan"})
-		return
-	}
-
-	attempt, questions, err := h.quizUsecase.StartAttempt(uint(quizID), userID)
-	if err != nil {
-		c.JSON(http.StatusForbidden, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"message":   "Ujian dimulai",
-		"attempt":   attempt,
-		"questions": questions,
-	})
-}

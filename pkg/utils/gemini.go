@@ -39,21 +39,22 @@ Aturan format:
    - Essay: Ini adalah essai/uraian. Tidak perlu "options", tetapi "correct_answer" harus berupa string yang merupakan kunci jawaban ideal. 
 4. "explanation" harus berisi penjelasan detail mengapa jawaban tersebut benar, dan ini akan ditampilkan kepada siswa setelah mereka menyelesaikan kuis. 
 5. "points" harus berupa integer yang menunjukkan bobot nilai untuk setiap soal, dengan nilai default 10 jika tidak ditentukan. 
-6. Pastikan semua teks dalam bahasa Indonesia yang baik dan benar, dan gunakan istilah yang sesuai dengan konteks pendidikan di Indonesia. 
-7. Sehubungan respons kamu akan ditembak langsung ke API, maka JANGAN PERNAH sertakan teks penjelasan atau instruksi tambahan di luar format JSON. Hanya kembalikan array JSON yang valid. 
-8. Struktur atau format untuk setiap objek WAJIB seperti ini:
+6. Kata-kata yang terdapat pada correct_answer HARUS PERSIS SAMA dengan yang ada di options (jika ada), karena akan digunakan untuk mencocokkan jawaban siswa.
+7. Pastikan semua teks dalam bahasa Indonesia yang baik dan benar, dan gunakan istilah yang sesuai dengan konteks pendidikan di Indonesia. 
+8. Sehubungan respons kamu akan ditembak langsung ke API, maka JANGAN PERNAH sertakan teks penjelasan atau instruksi tambahan di luar format JSON. Hanya kembalikan array JSON yang valid. 
+9. Struktur atau format untuk setiap objek WAJIB seperti ini:
 {
   "type": "MultipleChoice",
-  "text": "Teks pertanyaan secara lengkap",
-  "options": ["A", "B", "C", "D", "E"],
-  "correct_answer": "C",
+  "text": "Indonesia merupakan negara megabiodiversitas karena...",
+  "options": ["A. Memiliki garis pantai yang panjang", "B. Memiliki jumlah pulau terbanyak di dunia", "C. Memiliki keanekaragaman hayati yang sangat tinggi dan beragam", "D. Merupakan negara tropis dengan curah hujan tinggi", "E. Memiliki kekayaan sumber daya mineral yang melimpah"],
+  "correct_answer": "C. Memiliki keanekaragaman hayati yang sangat tinggi dan beragam",
   "points": 10,
-  "explanation": "Penjelasan detail mengapa jawaban tersebut benar"
+  "explanation": "Negara megabiodiversitas adalah negara yang memiliki jumlah spesies endemik dan keanekaragaman hayati yang sangat tinggi. Indonesia termasuk dalam kategori ini karena kekayaan flora dan faunanya yang luar biasa."
 }`, count, qType, topic)
 
 	// 4. Panggil model Gemini
 	// Gunakan gemini-1.5-flash (sangat cepat & murah) atau gemini-2.5-flash jika sudah tersedia
-	resp, err := client.Models.GenerateContent(ctx, "gemini-1.5-flash", genai.Text(prompt), nil)
+	resp, err := client.Models.GenerateContent(ctx, "models/gemini-2.5-flash-lite", genai.Text(prompt), nil)
 	if err != nil {
 		return "", fmt.Errorf("gagal menghubungi Gemini API: %v", err)
 	}
