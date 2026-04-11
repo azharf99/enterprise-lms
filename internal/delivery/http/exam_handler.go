@@ -33,7 +33,7 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRe
 		examMgmt.PUT("/:exam_id", handler.UpdateExam)
 		examMgmt.DELETE("/:exam_id", handler.DeleteExam)
 		examMgmt.PATCH("/:exam_id/token", handler.GenerateToken)
-		examMgmt.POST("/:exam_id/generate-ai", handler.GenerateQuestionsAI)
+		examMgmt.POST("/:exam_id/questions/generate", handler.GenerateQuestionsAI)
 	}
 }
 
