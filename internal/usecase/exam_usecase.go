@@ -185,6 +185,10 @@ func (u *examUsecase) UpdateExam(id uint, title, examType, description, cbt_toke
 	return &exam, nil
 }
 
+func (u *examUsecase) DeleteExam(id uint) error {
+	return u.examRepo.DeleteExam(id)
+}
+
 func (u *examUsecase) SubmitExamAttempt(examAttemptID uint, userAnswers datatypes.JSON) (*domain.ExamAttempt, error) {
 	// 1. Ambil data Attempt (Pastikan ada GetByID di repo Anda)
 	// Catatan: Anda perlu menambahkan metode ini di examAttemptRepository Anda

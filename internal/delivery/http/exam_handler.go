@@ -31,6 +31,7 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRe
 	{
 		examMgmt.GET("/:exam_id", handler.GetExamByID)
 		examMgmt.PUT("/:exam_id", handler.UpdateExam)
+		examMgmt.DELETE("/:exam_id", handler.DeleteExam)
 		examMgmt.PATCH("/:exam_id/token", handler.GenerateToken)
 		examMgmt.POST("/:exam_id/generate-ai", handler.GenerateQuestionsAI)
 	}
@@ -137,6 +138,22 @@ func (h *ExamHandler) CreateExam(c *gin.Context) {
 		"message": "Ujian berhasil dibuat",
 		"data":    exam,
 	})
+}
+
+func (h *ExamHandler) DeleteExam(c *gin.Context) {
+	idParam := c.Param("exam_id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID tidak valid"})
+		return
+	}
+
+	if err := h.examUsecase.DeleteExam(uint(id)); err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Ujian berhasil dihapus"})
 }
 
 // --- Implementasi GenerateToken ---

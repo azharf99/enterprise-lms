@@ -82,6 +82,7 @@ type ExamUsecase interface {
 	GetExamsByCourseID(courseID uint) ([]Exam, error)
 	GetExamByID(id uint) (Exam, error)
 	UpdateExam(id uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
+	DeleteExam(id uint) error
 
 	// CBT Execution
 	StartExamAttempt(examID, userID uint, inputToken string) (*ExamAttempt, []ExamQuestion, error)
