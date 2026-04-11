@@ -52,6 +52,8 @@ type CreateExamRequest struct {
 	PassingScore int        `json:"passing_score"`
 	StartTime    *time.Time `json:"start_time"` // Format JSON harus RFC3339, misal: "2026-10-01T08:00:00Z"
 	EndTime      *time.Time `json:"end_time"`
+	CBTToken     string     `json:"cbt_token"`
+	IsRandomized *bool      `json:"is_randomized"`
 }
 
 func (h *ExamHandler) GetExamsByCourseID(c *gin.Context) {
@@ -93,7 +95,7 @@ func (h *ExamHandler) UpdateExam(c *gin.Context) {
 		return
 	}
 
-	exam, err := h.examUsecase.UpdateExam(uint(id), req.Title, req.ExamType, req.Description, req.TimeLimit, req.PassingScore, req.StartTime, req.EndTime)
+	exam, err := h.examUsecase.UpdateExam(uint(id), req.Title, req.ExamType, req.Description, req.CBTToken, req.IsRandomized, req.TimeLimit, req.PassingScore, req.StartTime, req.EndTime)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -123,7 +125,7 @@ func (h *ExamHandler) CreateExam(c *gin.Context) {
 
 	// Panggil Usecase
 	exam, err := h.examUsecase.CreateExam(
-		uint(courseID), req.Title, req.ExamType, req.Description,
+		uint(courseID), req.Title, req.ExamType, req.Description, req.CBTToken, req.IsRandomized,
 		req.TimeLimit, req.PassingScore, req.StartTime, req.EndTime,
 	)
 	if err != nil {

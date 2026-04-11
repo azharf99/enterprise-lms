@@ -26,7 +26,11 @@ func NewExamUsecase(er domain.ExamRepository, eqr domain.ExamQuestionRepository,
 }
 
 // ... (CreateExam menggunakan logika CRUD standar) ...
-func (u *examUsecase) CreateExam(courseID uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
+func (u *examUsecase) CreateExam(courseID uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
+	isRandom := true // Default jika kosong
+	if is_randomized != nil {
+		isRandom = *is_randomized
+	}
 	exam := &domain.Exam{
 		CourseID:     courseID,
 		Title:        title,
@@ -36,6 +40,8 @@ func (u *examUsecase) CreateExam(courseID uint, title, examType, description str
 		PassingScore: passingScore,
 		StartTime:    startTime,
 		EndTime:      endTime,
+		CBTToken:     cbt_token,
+		IsRandomized: isRandom,
 	}
 	if err := u.examRepo.CreateExam(exam); err != nil {
 		return nil, err
@@ -153,10 +159,15 @@ func (u *examUsecase) GetExamByID(id uint) (domain.Exam, error) {
 	return u.examRepo.GetExamByID(id)
 }
 
-func (u *examUsecase) UpdateExam(id uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
+func (u *examUsecase) UpdateExam(id uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
 	exam, err := u.examRepo.GetExamByID(id)
 	if err != nil {
 		return nil, errors.New("ujian tidak ditemukan")
+	}
+
+	isRandom := true
+	if is_randomized != nil {
+		isRandom = *is_randomized
 	}
 
 	exam.Title = title
@@ -166,6 +177,8 @@ func (u *examUsecase) UpdateExam(id uint, title, examType, description string, t
 	exam.PassingScore = passingScore
 	exam.StartTime = startTime
 	exam.EndTime = endTime
+	exam.CBTToken = cbt_token
+	exam.IsRandomized = isRandom
 	if err := u.examRepo.UpdateExam(&exam); err != nil {
 		return nil, err
 	}

@@ -76,12 +76,12 @@ type ExamAttemptRepository interface {
 
 // --- KONTRAK USECASE ---
 type ExamUsecase interface {
-	CreateExam(courseID uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
+	CreateExam(courseID uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
 	GenerateCBTToken(examID uint) (string, error)
 	GenerateExamQuestionsWithAI(examID uint, topic, qType string, count int) ([]ExamQuestion, error)
 	GetExamsByCourseID(courseID uint) ([]Exam, error)
 	GetExamByID(id uint) (Exam, error)
-	UpdateExam(id uint, title, examType, description string, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
+	UpdateExam(id uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*Exam, error)
 
 	// CBT Execution
 	StartExamAttempt(examID, userID uint, inputToken string) (*ExamAttempt, []ExamQuestion, error)
