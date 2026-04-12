@@ -17,18 +17,29 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRe
 	handler := &ExamHandler{
 		examUsecase: eu,
 	}
+	studentMgmt := r.Group("/api/courses/:course_id/exams")
+	studentMgmt.Use(middleware.RequireAuth(), middleware.RequireExamAccess(er))
+	{
+		studentMgmt.GET("", handler.GetExamsByCourseID)
+	}
+
+	studentExamMgmt := r.Group("/api/exams")
+	studentExamMgmt.Use(middleware.RequireAuth(), middleware.RequireExamAccess(er))
+	{
+		studentExamMgmt.GET("/:exam_id", handler.GetExamByID)
+	}
+
 	// Endpoint Manajemen Ujian (Admin/Tutor)
 	mgmt := r.Group("/api/courses/:course_id/exams")
 	mgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
 		mgmt.POST("", handler.CreateExam)
-		mgmt.GET("", handler.GetExamsByCourseID)
 	}
 
+	// Endpoint Manajemen Ujian (Admin/Tutor)
 	examMgmt := r.Group("/api/exams")
 	examMgmt.Use(middleware.RequireAuth(), middleware.RoleMiddleware([]string{"Tutor", "Admin"}))
 	{
-		examMgmt.GET("/:exam_id", handler.GetExamByID)
 		examMgmt.PUT("/:exam_id", handler.UpdateExam)
 		examMgmt.DELETE("/:exam_id", handler.DeleteExam)
 		examMgmt.PATCH("/:exam_id/token", handler.GenerateToken)
@@ -115,7 +126,6 @@ func (h *ExamHandler) UpdateExam(c *gin.Context) {
 		"data":    exam,
 	})
 }
-
 
 func (h *ExamHandler) DeleteExam(c *gin.Context) {
 	idParam := c.Param("exam_id")
