@@ -134,7 +134,7 @@ func (h *QuizHandler) DeleteQuiz(c *gin.Context) {
 func (h *QuizHandler) GenerateQuizQuestionsWithAI(c *gin.Context) {
 	quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
 
-	var req AIGenerateRequest
+	var req domain.AIGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

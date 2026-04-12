@@ -3,7 +3,6 @@ package http
 import (
 	"net/http"
 	"strconv"
-	"time"
 
 	"github.com/azharf99/enterprise-lms/internal/delivery/http/middleware"
 	"github.com/azharf99/enterprise-lms/internal/domain"
@@ -37,24 +36,33 @@ func NewExamHandler(r *gin.Engine, eu domain.ExamUsecase, er domain.EnrollmentRe
 	}
 }
 
-// Format Request untuk Generate AI
-type AIGenerateRequest struct {
-	Topic string `json:"topic" binding:"required"`
-	QType string `json:"q_type" binding:"required"`
-	Count int    `json:"count" binding:"required,min=1,max=25"`
-}
+// --- Implementasi CreateExam ---
+func (h *ExamHandler) CreateExam(c *gin.Context) {
+	// Ambil course_id dari parameter URL (/api/courses/:course_id/exams)
+	courseIDParam := c.Param("course_id")
+	courseID, err := strconv.ParseUint(courseIDParam, 10, 32)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID Course tidak valid"})
+		return
+	}
 
-// --- Struct untuk Request Body ---
-type CreateExamRequest struct {
-	Title        string     `json:"title" binding:"required"`
-	ExamType     string     `json:"exam_type" binding:"required"` // Misalnya: "PTS", "PAS"
-	Description  string     `json:"description"`
-	TimeLimit    int        `json:"time_limit"`
-	PassingScore int        `json:"passing_score"`
-	StartTime    *time.Time `json:"start_time"` // Format JSON harus RFC3339, misal: "2026-10-01T08:00:00Z"
-	EndTime      *time.Time `json:"end_time"`
-	CBTToken     string     `json:"cbt_token"`
-	IsRandomized *bool      `json:"is_randomized"`
+	var req domain.CreateExamRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Format data tidak valid: " + err.Error()})
+		return
+	}
+
+	// Panggil Usecase
+	exam, err := h.examUsecase.CreateExam(uint(courseID), req)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusCreated, gin.H{
+		"message": "Ujian berhasil dibuat",
+		"data":    exam,
+	})
 }
 
 func (h *ExamHandler) GetExamsByCourseID(c *gin.Context) {
@@ -90,13 +98,13 @@ func (h *ExamHandler) UpdateExam(c *gin.Context) {
 		return
 	}
 
-	var req CreateExamRequest
+	var req domain.CreateExamRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Format request tidak valid"})
 		return
 	}
 
-	exam, err := h.examUsecase.UpdateExam(uint(id), req.Title, req.ExamType, req.Description, req.CBTToken, req.IsRandomized, req.TimeLimit, req.PassingScore, req.StartTime, req.EndTime)
+	exam, err := h.examUsecase.UpdateExam(uint(id), &req)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -108,37 +116,6 @@ func (h *ExamHandler) UpdateExam(c *gin.Context) {
 	})
 }
 
-// --- Implementasi CreateExam ---
-func (h *ExamHandler) CreateExam(c *gin.Context) {
-	// Ambil course_id dari parameter URL (/api/courses/:course_id/exams)
-	courseIDParam := c.Param("course_id")
-	courseID, err := strconv.ParseUint(courseIDParam, 10, 32)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "ID Course tidak valid"})
-		return
-	}
-
-	var req CreateExamRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Format data tidak valid: " + err.Error()})
-		return
-	}
-
-	// Panggil Usecase
-	exam, err := h.examUsecase.CreateExam(
-		uint(courseID), req.Title, req.ExamType, req.Description, req.CBTToken, req.IsRandomized,
-		req.TimeLimit, req.PassingScore, req.StartTime, req.EndTime,
-	)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
-		return
-	}
-
-	c.JSON(http.StatusCreated, gin.H{
-		"message": "Ujian berhasil dibuat",
-		"data":    exam,
-	})
-}
 
 func (h *ExamHandler) DeleteExam(c *gin.Context) {
 	idParam := c.Param("exam_id")
@@ -182,7 +159,7 @@ func (h *ExamHandler) GenerateToken(c *gin.Context) {
 func (h *ExamHandler) GenerateQuestionsAI(c *gin.Context) {
 	examID, _ := strconv.ParseUint(c.Param("exam_id"), 10, 32)
 
-	var req AIGenerateRequest
+	var req domain.AIGenerateRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return

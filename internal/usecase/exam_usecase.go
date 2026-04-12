@@ -26,22 +26,23 @@ func NewExamUsecase(er domain.ExamRepository, eqr domain.ExamQuestionRepository,
 }
 
 // ... (CreateExam menggunakan logika CRUD standar) ...
-func (u *examUsecase) CreateExam(courseID uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
+func (u *examUsecase) CreateExam(courseID uint, req domain.CreateExamRequest) (*domain.Exam, error) {
 	isRandom := true // Default jika kosong
-	if is_randomized != nil {
-		isRandom = *is_randomized
+	if req.IsRandomized != nil {
+		isRandom = *req.IsRandomized
 	}
 	exam := &domain.Exam{
 		CourseID:     courseID,
-		Title:        title,
-		ExamType:     examType,
-		Description:  description,
-		TimeLimit:    timeLimit,
-		PassingScore: passingScore,
-		StartTime:    startTime,
-		EndTime:      endTime,
-		CBTToken:     cbt_token,
+		Title:        req.Title,
+		ExamType:     req.ExamType,
+		Description:  req.Description,
+		TimeLimit:    req.TimeLimit,
+		PassingScore: req.PassingScore,
+		StartTime:    req.StartTime,
+		EndTime:      req.EndTime,
+		CBTToken:     req.CBTToken,
 		IsRandomized: isRandom,
+		Status:       req.Status,
 	}
 	if err := u.examRepo.CreateExam(exam); err != nil {
 		return nil, err
@@ -159,26 +160,27 @@ func (u *examUsecase) GetExamByID(id uint) (domain.Exam, error) {
 	return u.examRepo.GetExamByID(id)
 }
 
-func (u *examUsecase) UpdateExam(id uint, title, examType, description, cbt_token string, is_randomized *bool, timeLimit, passingScore int, startTime, endTime *time.Time) (*domain.Exam, error) {
+func (u *examUsecase) UpdateExam(id uint, req *domain.CreateExamRequest) (*domain.Exam, error) {
 	exam, err := u.examRepo.GetExamByID(id)
 	if err != nil {
 		return nil, errors.New("ujian tidak ditemukan")
 	}
 
 	isRandom := true
-	if is_randomized != nil {
-		isRandom = *is_randomized
+	if req.IsRandomized != nil {
+		isRandom = *req.IsRandomized
 	}
 
-	exam.Title = title
-	exam.ExamType = examType
-	exam.Description = description
-	exam.TimeLimit = timeLimit
-	exam.PassingScore = passingScore
-	exam.StartTime = startTime
-	exam.EndTime = endTime
-	exam.CBTToken = cbt_token
+	exam.Title = req.Title
+	exam.ExamType = req.ExamType
+	exam.Description = req.Description
+	exam.TimeLimit = req.TimeLimit
+	exam.PassingScore = req.PassingScore
+	exam.StartTime = req.StartTime
+	exam.EndTime = req.EndTime
+	exam.CBTToken = req.CBTToken
 	exam.IsRandomized = isRandom
+	exam.Status = req.Status
 	if err := u.examRepo.UpdateExam(&exam); err != nil {
 		return nil, err
 	}
