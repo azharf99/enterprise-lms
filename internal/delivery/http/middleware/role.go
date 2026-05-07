@@ -7,20 +7,24 @@ import (
 // RoleMiddleware adalah middleware untuk memeriksa role pengguna yang diizinkan mengakses endpoint tertentu
 func RoleMiddleware(allowedRoles []string) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		role, exists := c.Get("role")
+		roleVal, exists := c.Get("role")
 		if !exists {
-			c.JSON(403, gin.H{"error": "Role tidak ditemukan dalam token"})
-			c.Abort()
+			c.AbortWithStatusJSON(403, gin.H{"error": "Role tidak ditemukan dalam token"})
 			return
 		}
-		userRole := role.(string)
+
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(403, gin.H{"error": "Format role tidak valid"})
+			return
+		}
+
 		for _, allowed := range allowedRoles {
 			if userRole == allowed {
 				c.Next()
 				return
 			}
 		}
-		c.JSON(403, gin.H{"error": "Akses ditolak: role tidak diizinkan"})
-		c.Abort()
+		c.AbortWithStatusJSON(403, gin.H{"error": "Akses ditolak: role tidak diizinkan"})
 	}
 }

@@ -16,8 +16,15 @@ type TokenPair struct {
 
 // GenerateTokenPair membuat Access Token (15 menit) dan Refresh Token (7 hari)
 func GenerateTokenPair(userID uint, role string) (*TokenPair, error) {
-	secretKey := []byte(os.Getenv("JWT_SECRET"))
-	refreshSecretKey := []byte(os.Getenv("JWT_REFRESH_SECRET")) // Tambahkan ini di .env Anda
+	jwtSecret := os.Getenv("JWT_SECRET")
+	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+
+	if jwtSecret == "" || refreshSecret == "" {
+		return nil, errors.New("konfigurasi JWT_SECRET atau JWT_REFRESH_SECRET belum diatur di environment")
+	}
+
+	secretKey := []byte(jwtSecret)
+	refreshSecretKey := []byte(refreshSecret)
 
 	// 1. Buat Access Token (Umur pendek)
 	accessClaims := jwt.MapClaims{
@@ -31,7 +38,6 @@ func GenerateTokenPair(userID uint, role string) (*TokenPair, error) {
 	}
 
 	// 2. Buat Refresh Token (Umur panjang)
-	// Refresh token biasanya hanya butuh user_id untuk verifikasi
 	refreshClaims := jwt.MapClaims{
 		"user_id": userID,
 		"exp":     time.Now().Add(time.Hour * 24 * 7).Unix(), // 7 Hari
@@ -49,9 +55,17 @@ func GenerateTokenPair(userID uint, role string) (*TokenPair, error) {
 
 // ValidateRefreshToken memeriksa validitas refresh token dan mengembalikan user_id
 func ValidateRefreshToken(tokenString string) (uint, error) {
-	refreshSecretKey := []byte(os.Getenv("JWT_REFRESH_SECRET"))
+	refreshSecret := os.Getenv("JWT_REFRESH_SECRET")
+	if refreshSecret == "" {
+		return 0, errors.New("konfigurasi JWT_REFRESH_SECRET belum diatur di environment")
+	}
+	refreshSecretKey := []byte(refreshSecret)
 
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// Validasi algoritma penandatanganan
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("metode penandatanganan tidak valid")
+		}
 		return refreshSecretKey, nil
 	})
 
@@ -65,10 +79,17 @@ func ValidateRefreshToken(tokenString string) (uint, error) {
 	}
 
 	// Parsing user_id (karena jwt.MapClaims mengubah angka menjadi float64)
-	userIDFloat, ok := claims["user_id"].(float64)
-	if !ok {
-		return 0, errors.New("format user_id tidak valid dalam token")
+	userIDVal, exists := claims["user_id"]
+	if !exists {
+		return 0, errors.New("user_id tidak ditemukan dalam token")
 	}
 
-	return uint(userIDFloat), nil
+	switch v := userIDVal.(type) {
+	case float64:
+		return uint(v), nil
+	case uint:
+		return v, nil
+	default:
+		return 0, errors.New("format user_id tidak valid dalam token")
+	}
 }

@@ -20,13 +20,25 @@ func RequireAuth() gin.HandlerFunc {
 			return
 		}
 
-		// Token biasanya dikirim dalam format: "Bearer <token>"
-		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
-		secretKey := []byte(os.Getenv("JWT_SECRET"))
+		// Token HARUS dikirim dalam format: "Bearer <token>"
+		if !strings.HasPrefix(authHeader, "Bearer ") {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Format Authorization header tidak valid. Gunakan 'Bearer <token>'"})
+			c.Abort()
+			return
+		}
+
+		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
+		jwtSecret := os.Getenv("JWT_SECRET")
+		if jwtSecret == "" {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Konfigurasi server tidak lengkap (JWT_SECRET missing)"})
+			c.Abort()
+			return
+		}
+		secretKey := []byte(jwtSecret)
 
 		token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, fmt.Errorf("metode penandatanganan tidak valid")
+				return nil, fmt.Errorf("metode penandatanganan tidak valid: %v", token.Header["alg"])
 			}
 			return secretKey, nil
 		})
@@ -39,6 +51,7 @@ func RequireAuth() gin.HandlerFunc {
 
 		// Menyimpan data pengguna ke dalam context (untuk digunakan di handler selanjutnya)
 		if claims, ok := token.Claims.(jwt.MapClaims); ok {
+			// Simpan dengan tipe data aslinya untuk diproses di middleware/handler lain
 			c.Set("user_id", claims["user_id"])
 			c.Set("role", claims["role"])
 		}

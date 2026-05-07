@@ -11,14 +11,29 @@ import (
 // 1. RequireCourseAccess: Untuk rute /api/courses/:course_id/...
 func RequireCourseAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
 
 		courseID, _ := strconv.ParseUint(c.Param("course_id"), 10, 32)
 
@@ -34,14 +49,30 @@ func RequireCourseAccess(enrollmentRepo domain.EnrollmentRepository) gin.Handler
 // 2. RequireModuleAccess: Versi Teroptimasi (Single Query)
 func RequireModuleAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		moduleID, _ := strconv.ParseUint(c.Param("module_id"), 10, 32)
 
 		hasAccess, err := enrollmentRepo.CheckModuleAccess(uint(moduleID), userID)
@@ -56,14 +87,30 @@ func RequireModuleAccess(enrollmentRepo domain.EnrollmentRepository) gin.Handler
 // 4. RequireExamAccess: Versi Teroptimasi (Single Query)
 func RequireExamAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		examID, _ := strconv.ParseUint(c.Param("exam_id"), 10, 32)
 
 		hasAccess, err := enrollmentRepo.CheckExamAccess(uint(examID), userID)
@@ -78,14 +125,30 @@ func RequireExamAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFu
 // 4. RequireExamAttemptAccess: Versi Teroptimasi (Single Query)
 func RequireExamAttemptAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		attemptID, _ := strconv.ParseUint(c.Param("attempt_id"), 10, 32)
 
 		hasAccess, err := enrollmentRepo.CheckExamAttemptAccess(uint(attemptID), userID)
@@ -100,14 +163,30 @@ func RequireExamAttemptAccess(enrollmentRepo domain.EnrollmentRepository) gin.Ha
 // 4. RequireQuizAttemptAccess: Versi Teroptimasi (Single Query)
 func RequireQuizAttemptAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		attemptID, _ := strconv.ParseUint(c.Param("attempt_id"), 10, 32)
 
 		hasAccess, err := enrollmentRepo.CheckQuizAttemptAccess(uint(attemptID), userID)
@@ -121,14 +200,30 @@ func RequireQuizAttemptAccess(enrollmentRepo domain.EnrollmentRepository) gin.Ha
 
 func RequireQuizAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		quizID, _ := strconv.ParseUint(c.Param("quiz_id"), 10, 32)
 
 		// HANYA 1 QUERY SAJA!
@@ -144,14 +239,30 @@ func RequireQuizAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFu
 
 func RequireQuestionAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		questionID, _ := strconv.ParseUint(c.Param("question_id"), 10, 32)
 
 		// HANYA 1 QUERY SAJA!
@@ -167,14 +278,30 @@ func RequireQuestionAccess(enrollmentRepo domain.EnrollmentRepository) gin.Handl
 
 func RequireLessonAccess(enrollmentRepo domain.EnrollmentRepository) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		userRole, _ := c.Get("role")
+		roleVal, _ := c.Get("role")
+		userRole, ok := roleVal.(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusForbidden, gin.H{"error": "Role tidak valid"})
+			return
+		}
+
 		if userRole == "Admin" || userRole == "Tutor" {
 			c.Next()
 			return
 		}
 
 		userIDVal, _ := c.Get("user_id")
-		userID := uint(userIDVal.(float64))
+		var userID uint
+		switch v := userIDVal.(type) {
+		case float64:
+			userID = uint(v)
+		case uint:
+			userID = v
+		default:
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "User ID tidak valid dalam token"})
+			return
+		}
+
 		lessonID, _ := strconv.ParseUint(c.Param("lesson_id"), 10, 32)
 
 		// HANYA 1 QUERY SAJA!

@@ -48,20 +48,44 @@ func SetupCORS() gin.HandlerFunc {
 // --- Rate Limiter In-Memory ---
 // Melindungi server dari spam request (misal: frontend stuck di infinite loop refresh token)
 
-var visitors = make(map[string]*rate.Limiter)
+type visitor struct {
+	limiter  *rate.Limiter
+	lastSeen time.Time
+}
+
+var visitors = make(map[string]*visitor)
 var mu sync.Mutex
+
+func init() {
+	// Jalankan cleanup setiap 10 menit untuk menghapus visitor yang tidak aktif selama 1 jam
+	go func() {
+		for {
+			time.Sleep(10 * time.Minute)
+			mu.Lock()
+			for ip, v := range visitors {
+				if time.Since(v.lastSeen) > 1*time.Hour {
+					delete(visitors, ip)
+				}
+			}
+			mu.Unlock()
+		}
+	}()
+}
 
 func getVisitor(ip string) *rate.Limiter {
 	mu.Lock()
 	defer mu.Unlock()
 
-	limiter, exists := visitors[ip]
+	v, exists := visitors[ip]
 	if !exists {
 		// Mengizinkan 5 request per detik, dengan burst maksimal 10 request
-		limiter = rate.NewLimiter(5, 10)
-		visitors[ip] = limiter
+		limiter := rate.NewLimiter(5, 10)
+		v = &visitor{limiter: limiter, lastSeen: time.Now()}
+		visitors[ip] = v
+	} else {
+		v.lastSeen = time.Now()
 	}
-	return limiter
+	return v.limiter
 }
 
 func RateLimiter() gin.HandlerFunc {
