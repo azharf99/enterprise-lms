@@ -179,12 +179,8 @@ func filterAnswersOut(questions []domain.Question) []domain.QuestionAttemptDTO {
 
 func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) (*domain.QuizAttempt, error) {
 	// 1. Dapatkan data attempt
-	// attempt, err := u.attemptRepo.GetLatestAttempt(0, 0) // Kita gunakan ID langsung jika ada method GetByID di repo attempt. Untuk kasus ini, mari asumsikan kita butuh GetByID.
-	// Catatan: Anda harus menambahkan method GetByID(id uint) ke QuizAttemptRepository!
-	// Karena di interface sebelumnya belum ada, mari kita asumsikan kita punya method itu.
 	attempt, err := u.attemptRepo.GetQuizAttemptByID(attemptID)
 
-	// Untuk contoh ini, saya buat query langsung agar kode ini tidak gagal. Tapi disarankan ditambahkan di Repo.
 	// Jika attempt sudah selesai, tolak.
 	if attempt.CompletedAt != nil {
 		return nil, errors.New("kuis ini sudah disubmit sebelumnya")
@@ -206,6 +202,9 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	// 4. Proses Kalkulasi Skor
 	totalMaxPoints := 0
 	totalEarnedPoints := 0
+
+	compactUserAnswer := new(bytes.Buffer)
+	compactCorrectAnswer := new(bytes.Buffer)
 
 	for _, question := range quiz.Questions {
 		totalMaxPoints += question.Points
@@ -229,12 +228,12 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 		default:
 			// Tipe soal lainnya (Pilihan Ganda biasa, Benar/Salah, Isian Singkat)
 			// Menggunakan pencocokan string eksak (Strict Equality)
-			compactUserAnswer := new(bytes.Buffer)
-			compactCorrectAnswer := new(bytes.Buffer)
+			compactUserAnswer.Reset()
+			compactCorrectAnswer.Reset()
 			json.Compact(compactUserAnswer, userAnswerBytes)
 			json.Compact(compactCorrectAnswer, question.CorrectAnswer)
 
-			if compactUserAnswer.String() == compactCorrectAnswer.String() {
+			if bytes.Equal(compactUserAnswer.Bytes(), compactCorrectAnswer.Bytes()) {
 				totalEarnedPoints += question.Points
 			}
 		}
