@@ -87,6 +87,28 @@ func (u *analyticsUsecase) GetItemAnalysis(examID uint) ([]domain.ItemAnalysisDT
 		return analysisResult, nil
 	}
 
+	// Optimization: Pre-parse and pre-compact all attempts' answers once
+	// We map each attempt to a map of [questionID]compactedAnswerString
+	type processedAttempt struct {
+		answers map[string]string
+	}
+	processedAttempts := make([]processedAttempt, totalAttempts)
+	for i, att := range attempts {
+		var rawAnswers map[string]json.RawMessage
+		_ = json.Unmarshal(att.Answers, &rawAnswers)
+
+		processed := processedAttempt{
+			answers: make(map[string]string),
+		}
+		for qID, rawAns := range rawAnswers {
+			compacted := new(bytes.Buffer)
+			if err := json.Compact(compacted, rawAns); err == nil {
+				processed.answers[qID] = compacted.String()
+			}
+		}
+		processedAttempts[i] = processed
+	}
+
 	// Evaluasi setiap soal
 	for _, question := range exam.Questions {
 		correctCount := 0
@@ -94,25 +116,20 @@ func (u *analyticsUsecase) GetItemAnalysis(examID uint) ([]domain.ItemAnalysisDT
 		unansweredCount := 0
 		qIDStr := fmt.Sprintf("%d", question.ID)
 
-		// Cek jawaban seluruh siswa untuk soal ini
-		for _, att := range attempts {
-			var parsedAnswers map[string]interface{}
-			_ = json.Unmarshal(att.Answers, &parsedAnswers)
+		// Optimization: Pre-compact correct answer for this question
+		compactCorrect := new(bytes.Buffer)
+		_ = json.Compact(compactCorrect, question.CorrectAnswer)
+		correctStr := compactCorrect.String()
 
-			userAns, exists := parsedAnswers[qIDStr]
+		// Cek jawaban seluruh siswa untuk soal ini
+		for _, att := range processedAttempts {
+			userAnsCompacted, exists := att.answers[qIDStr]
 			if !exists {
 				unansweredCount++
 				continue
 			}
 
-			// Menggunakan komparasi strict untuk analisis tingkat kesukaran
-			userAnsBytes, _ := json.Marshal(userAns)
-			compactUser := new(bytes.Buffer)
-			compactCorrect := new(bytes.Buffer)
-			json.Compact(compactUser, userAnsBytes)
-			json.Compact(compactCorrect, question.CorrectAnswer)
-
-			if compactUser.String() == compactCorrect.String() {
+			if userAnsCompacted == correctStr {
 				correctCount++
 			} else {
 				wrongCount++
@@ -120,10 +137,6 @@ func (u *analyticsUsecase) GetItemAnalysis(examID uint) ([]domain.ItemAnalysisDT
 		}
 
 		// Hitung Indeks Kesukaran (P) = Jumlah Benar / Total Siswa
-		// Kriteria standar evaluasi pendidikan:
-		// P > 0.70        : Mudah
-		// 0.30 <= P <= 0.70 : Sedang
-		// P < 0.30        : Sulit
 		difficultyIndex := float64(correctCount) / float64(totalAttempts)
 		difficultyLabel := "Sedang"
 		if difficultyIndex > 0.70 {
