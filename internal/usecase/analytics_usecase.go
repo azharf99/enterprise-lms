@@ -87,6 +87,9 @@ func (u *analyticsUsecase) GetItemAnalysis(examID uint) ([]domain.ItemAnalysisDT
 		return analysisResult, nil
 	}
 
+	compactUser := new(bytes.Buffer)
+	compactCorrect := new(bytes.Buffer)
+
 	// Evaluasi setiap soal
 	for _, question := range exam.Questions {
 		correctCount := 0
@@ -107,12 +110,12 @@ func (u *analyticsUsecase) GetItemAnalysis(examID uint) ([]domain.ItemAnalysisDT
 
 			// Menggunakan komparasi strict untuk analisis tingkat kesukaran
 			userAnsBytes, _ := json.Marshal(userAns)
-			compactUser := new(bytes.Buffer)
-			compactCorrect := new(bytes.Buffer)
+			compactUser.Reset()
+			compactCorrect.Reset()
 			json.Compact(compactUser, userAnsBytes)
 			json.Compact(compactCorrect, question.CorrectAnswer)
 
-			if compactUser.String() == compactCorrect.String() {
+			if bytes.Equal(compactUser.Bytes(), compactCorrect.Bytes()) {
 				correctCount++
 			} else {
 				wrongCount++

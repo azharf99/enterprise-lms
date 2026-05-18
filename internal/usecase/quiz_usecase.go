@@ -206,6 +206,8 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 	// 4. Proses Kalkulasi Skor
 	totalMaxPoints := 0
 	totalEarnedPoints := 0
+	compactUserAnswer := new(bytes.Buffer)
+	compactCorrectAnswer := new(bytes.Buffer)
 
 	for _, question := range quiz.Questions {
 		totalMaxPoints += question.Points
@@ -229,12 +231,12 @@ func (u *quizUsecase) SubmitAttempt(attemptID uint, userAnswers datatypes.JSON) 
 		default:
 			// Tipe soal lainnya (Pilihan Ganda biasa, Benar/Salah, Isian Singkat)
 			// Menggunakan pencocokan string eksak (Strict Equality)
-			compactUserAnswer := new(bytes.Buffer)
-			compactCorrectAnswer := new(bytes.Buffer)
+			compactUserAnswer.Reset()
+			compactCorrectAnswer.Reset()
 			json.Compact(compactUserAnswer, userAnswerBytes)
 			json.Compact(compactCorrectAnswer, question.CorrectAnswer)
 
-			if compactUserAnswer.String() == compactCorrectAnswer.String() {
+			if bytes.Equal(compactUserAnswer.Bytes(), compactCorrectAnswer.Bytes()) {
 				totalEarnedPoints += question.Points
 			}
 		}
