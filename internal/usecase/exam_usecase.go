@@ -220,6 +220,9 @@ func (u *examUsecase) SubmitExamAttempt(examAttemptID uint, userAnswers datatype
 	totalMaxPoints := 0
 	totalEarnedPoints := 0
 
+	compactUser := new(bytes.Buffer)
+	compactCorrect := new(bytes.Buffer)
+
 	for _, question := range exam.Questions {
 		totalMaxPoints += question.Points
 		questionIDStr := fmt.Sprintf("%d", question.ID)
@@ -239,11 +242,11 @@ func (u *examUsecase) SubmitExamAttempt(examAttemptID uint, userAnswers datatype
 			// Esai diabaikan dari perhitungan otomatis (akan dinilai manual oleh Tutor nanti)
 		default:
 			// Hitung dengan Strict Match (Pilihan Ganda Biasa, Benar Salah, Isian)
-			compactUser := new(bytes.Buffer)
-			compactCorrect := new(bytes.Buffer)
+			compactUser.Reset()
+			compactCorrect.Reset()
 			json.Compact(compactUser, userAnsBytes)
 			json.Compact(compactCorrect, question.CorrectAnswer)
-			if compactUser.String() == compactCorrect.String() {
+			if bytes.Equal(compactUser.Bytes(), compactCorrect.Bytes()) {
 				totalEarnedPoints += question.Points
 			}
 		}
